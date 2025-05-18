@@ -16,7 +16,7 @@ pubspec.lock
 coverage/
 .coverage/
 
-# Android specific
+# Android specificc
 **/android/**/gradle-wrapper.jar
 .gradle/
 **/android/captures/
