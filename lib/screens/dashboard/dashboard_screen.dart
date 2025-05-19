@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:maintenance_app/config/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:maintenance_app/services/auth_service.dart';
 import 'package:maintenance_app/models/maintenance_task.dart';
 import 'package:maintenance_app/screens/tasks/task_list_screen.dart';
 import 'package:maintenance_app/screens/profile_screen.dart';
 import 'package:maintenance_app/screens/auth/login_screen.dart';
+import 'package:maintenance_app/config/constants.dart';
+
+import '../tasks/task_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key});
+
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
 }
@@ -17,6 +23,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _pendingCount = 0;
   int _inProgressCount = 0;
   int _completedCount = 0;
+  int _rebuttalCount = 0;
 
   @override
   void initState() {
@@ -31,18 +38,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
-      final odooService = authService.odooService;
+      final apiService = authService.apiService;
       
-      if (odooService == null) {
+      if (apiService == null) {
         throw Exception('Not authenticated');
       }
 
-      final tasks = await odooService.getTasks();
+      final response = await apiService.getMaintenanceRequests();
+      if (response == null || response['success'] != true) {
+        // Affiche le message d'erreur de l'API si disponible
+        final apiMessage = response != null && response['message'] != null
+            ? response['message']
+            : 'Failed to fetch tasks';
+        throw Exception(apiMessage);
+      }
+      final List<dynamic> data = response['data']['requests'] ?? [];
+      final tasks = data.map((json) => MaintenanceTask.fromJson(json)).toList();
+
       setState(() {
-        _tasks = tasks;
-        _pendingCount = _tasks.where((task) => task.status == 'pending').length;
-        _inProgressCount = _tasks.where((task) => task.status == 'in_progress').length;
-        _completedCount = _tasks.where((task) => task.status == 'completed').length;
+        _tasks = tasks.cast<MaintenanceTask>();
+
+        _pendingCount = _tasks.where((task) => task.status == '1').length;
+        _inProgressCount = _tasks.where((task) => task.status == '2').length;
+        _completedCount = _tasks.where((task) => task.status == '3').length;
+        print('nom : ${_tasks[0].status}');
+        _rebuttalCount = _tasks.where((task) => task.status == '4').length;
         _isLoading = false;
       });
     } catch (e) {
@@ -152,35 +172,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         style: Theme.of(context).textTheme.displayMedium,
                       ),
                       SizedBox(height: 16),
-                      
+
                       Row(
                         children: [
                           _buildStatusCard(
-                            context, 
-                            'Pending', 
-                            _pendingCount, 
+                            context,
+                            'Pending',
+                            _pendingCount,
                             Colors.orange,
                             Icons.hourglass_empty,
-                            () => _navigateToTaskList('pending'),
+                                () => _navigateToTaskList('pending'),
+                            'Tâches en attente',
                           ),
                           SizedBox(width: 16),
                           _buildStatusCard(
-                            context, 
-                            'In Progress', 
-                            _inProgressCount, 
+                            context,
+                            'In Progress',
+                            _inProgressCount,
                             Colors.blue,
                             Icons.engineering,
-                            () => _navigateToTaskList('in_progress'),
+                                () => _navigateToTaskList('in_progress'),
+                            'Tâches en cours',
                           ),
                           SizedBox(width: 16),
                           _buildStatusCard(
-                            context, 
-                            'Completed', 
-                            _completedCount, 
+                            context,
+                            'Completed',
+                            _completedCount,
                             Colors.green,
                             Icons.check_circle,
-                            () => _navigateToTaskList('completed'),
+                                () => _navigateToTaskList('completed'),
+                            'Tâches terminées',
                           ),
+                          SizedBox(width: 16),
+                          _buildStatusCard(
+                              context,
+                              'Rebuttal',
+                              _rebuttalCount,
+                              Colors.redAccent,
+                              Icons.error,
+                                  () => _navigateToTaskList('rebuttal'),
+                              'Mis sur le côté')
                         ],
                       ),
                       
@@ -258,18 +290,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildStatusCard(
-    BuildContext context, 
-    String title, 
-    int count, 
-    Color color, 
-    IconData icon,
-    VoidCallback onTap,
-  ) {
+      BuildContext context,
+      String title,
+      int count,
+      Color color,
+      IconData icon,
+      VoidCallback onTap,
+      String contextText, // Nouveau paramètre
+      ) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Card(
-          color: color.withOpacity(0.1),
+          color: color.withOpacity(0.08),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -289,7 +322,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   title,
                   style: TextStyle(
                     color: color,
+                    fontWeight: FontWeight.bold,
                   ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  contextText, // Affichage du contexte
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
@@ -319,7 +362,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: EdgeInsets.symmetric(vertical: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: statusColor.withOpacity(0.2),
+          backgroundColor: statusColor.withValues(),
           child: Text(
             task.priority.toString(),
             style: TextStyle(
@@ -362,17 +405,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _navigateToTaskList(String status) {
-    Navigator.push(
+  void _navigateToTaskList(String status) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => TaskListScreen(status: status),
       ),
     );
+    _loadDashboardData(); // Rafraîchit après retour
   }
 
-  void _navigateToTaskDetail(MaintenanceTask task) {
-    // Implementation for task detail navigation
+  void _navigateToTaskDetail(MaintenanceTask task) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TaskDetailScreen(task: task),
+      ),
+    );
+    _loadDashboardData(); // Rafraîchit après retour
   }
 
   String _formatDate(DateTime date) {

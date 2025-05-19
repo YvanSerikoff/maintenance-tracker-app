@@ -29,18 +29,32 @@ class MaintenanceTask {
 
   factory MaintenanceTask.fromJson(Map<String, dynamic> json) {
     return MaintenanceTask(
-      id: json['id'],
-      name: json['name'],
-      description: json['description'],
-      scheduledDate: DateTime.parse(json['scheduled_date']),
-      status: json['status'],
-      priority: json['priority'],
-      technicianId: json['technician_id'],
-      equipmentId: json['equipment_id'],
-      location: json['location'],
-      attachments: List<String>.from(json['attachments'] ?? []),
-      createdAt: DateTime.parse(json['created_at']),
-      lastUpdated: DateTime.parse(json['last_updated']),
+      id: json['id'] ?? 0,
+      name: json['name']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      scheduledDate: json['scheduled_date'] != null
+          ? DateTime.tryParse(json['scheduled_date'].toString()) ?? DateTime(1970)
+          : DateTime(1970),
+      status: json['stage_id']['id']?.toString() ?? '',
+      priority: json['priority'] is int
+          ? json['priority']
+          : int.tryParse(json['priority']?.toString() ?? '0') ?? 0,
+      technicianId: json['technician_id'] is int
+          ? json['technician_id']
+          : int.tryParse(json['technician_id']?.toString() ?? '0') ?? 0,
+      equipmentId: json['equipment_id'] is int
+          ? json['equipment_id']
+          : (json['equipment_id'] is Map && json['equipment_id']['id'] != null
+          ? json['equipment_id']['id']
+          : 0),
+      location: json['location']?.toString() ?? '',
+      attachments: (json['attachments'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime(1970)
+          : DateTime(1970),
+      lastUpdated: json['last_updated'] != null
+          ? DateTime.tryParse(json['last_updated'].toString()) ?? DateTime(1970)
+          : DateTime(1970),
     );
   }
 

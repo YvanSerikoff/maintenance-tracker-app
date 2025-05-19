@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:provider/provider.dart';
 import 'package:maintenance_app/models/maintenance_task.dart';
 import 'package:maintenance_app/models/equipment.dart';
 import 'package:maintenance_app/services/auth_service.dart';
 import 'package:maintenance_app/utils/date_formatter.dart';
+import 'package:maintenance_app/config/constants.dart';
+
+import '../../services/flutter_basic_auth.dart';
 
 class TaskDetailScreen extends StatefulWidget {
   final MaintenanceTask task;
 
-  TaskDetailScreen({required this.task});
+  const TaskDetailScreen({super.key, required this.task});
 
   @override
-  _TaskDetailScreenState createState() => _TaskDetailScreenState();
+  TaskDetailScreenState createState() => TaskDetailScreenState();
 }
 
-class _TaskDetailScreenState extends State<TaskDetailScreen> {
-  bool _isLoadingEquipment = true;
+class TaskDetailScreenState extends State<TaskDetailScreen> {
   bool _isSaving = false;
   Equipment? _equipment;
   String? _selectedStatus;
@@ -24,75 +27,80 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   void initState() {
     super.initState();
     _selectedStatus = widget.task.status;
-    _loadEquipmentDetails();
+    // Utilise WidgetsBinding pour accéder au context après l'init
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final apiService = authService.apiService;
+      if (apiService != null) {
+        fetchEquipment(widget.task.equipmentId, apiService);
+      } else {
+        print('Erreur : AuthService non initialisé');
+      }
+    });
   }
 
-  Future<void> _loadEquipmentDetails() async {
-    setState(() {
-      _isLoadingEquipment = true;
-    });
-
+  void fetchEquipment(int equipmentId, CMMSApiService apiService) async {
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final odooService = authService.odooService;
-      
-      if (odooService == null) {
-        throw Exception('Not authenticated');
+      final response = await apiService.getEquipmentById(equipmentId);
+      if (response != null && response['success'] == true) {
+        setState(() {
+          _equipment = Equipment.fromJson(response['data']);
+        });
+        print('Équipement récupéré : ${_equipment?.category}');
+      } else {
+        print('Erreur API : ${response != null ? response['message'] : 'Réponse nulle'}');
       }
-
-      final equipment = await odooService.getEquipment(widget.task.equipmentId);
-      setState(() {
-        _equipment = equipment;
-        _isLoadingEquipment = false;
-      });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading equipment: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      setState(() {
-        _isLoadingEquipment = false;
-      });
+      print('Erreur lors de l\'appel API : $e');
     }
   }
 
+
   Future<void> _updateTaskStatus(String newStatus) async {
     if (newStatus == widget.task.status) return;
-    
+
     setState(() {
       _isSaving = true;
     });
 
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
-      final odooService = authService.odooService;
-      
-      if (odooService == null) {
+      final apiService = authService.apiService;
+      final stageId = AppConstants.statusToStageId[newStatus];
+
+      if (apiService == null) {
         throw Exception('Not authenticated');
       }
+      if (stageId == null) {
+        throw Exception('Statut inconnu');
+      }
 
-      final success = await odooService.updateTaskStatus(widget.task.id, newStatus);
-      
-      if (success) {
+      final response = await apiService.updateMaintenanceRequest(
+        widget.task.id,
+        {
+          'status': newStatus,
+          'stage_id': stageId,
+        },
+      );
+      print('Réponse API : $response');
+      if (response != null && response['success'] == true) {
         setState(() {
           _selectedStatus = newStatus;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Task status updated successfully'),
+            content: Text('Statut de la tâche mis à jour avec succès'),
             backgroundColor: Colors.green,
           ),
         );
       } else {
-        throw Exception('Failed to update task status');
+        throw Exception('Échec de la mise à jour du statut');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error updating status: ${e.toString()}'),
+          content: Text('Erreur lors de la mise à jour : ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -162,13 +170,14 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                       _isSaving
                           ? Center(child: CircularProgressIndicator())
                           : Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                _buildStatusButton('pending', 'Pending', Colors.orange),
-                                _buildStatusButton('in_progress', 'In Progress', Colors.blue),
-                                _buildStatusButton('completed', 'Completed', Colors.green),
-                              ],
-                            ),
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildStatusButton('pending', 'Pending', Colors.orange),
+                          _buildStatusButton('in_progress', 'In Progress', Colors.blue),
+                          _buildStatusButton('completed', 'Completed', Colors.green),
+                          _buildStatusButton('rebut', 'Rebut', Colors.redAccent), // Nouveau statut
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -189,12 +198,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       SizedBox(height: 8),
-                      Text(
-                        widget.task.description.isEmpty
-                            ? 'No description provided'
-                            : widget.task.description,
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
+                      widget.task.description.isEmpty
+                          ? Text('No description provided')
+                          : Html(data: widget.task.description),
                     ],
                   ),
                 ),
@@ -215,55 +221,51 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       SizedBox(height: 16),
-                      _isLoadingEquipment
-                          ? Center(
-                              child: CircularProgressIndicator(),
-                            )
-                          : _equipment == null
-                              ? Text('Equipment information not available')
-                              : Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                      _equipment == null
+                          ? Text('Equipment information not available')
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
                                   children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          width: 80,
-                                          height: 80,
-                                          decoration: BoxDecoration(
-                                            border: Border.all(color: Colors.grey),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: _equipment!.imageUrl.isNotEmpty
-                                              ? Image.network(_equipment!.imageUrl)
-                                              : Icon(Icons.build, size: 40),
-                                        ),
-                                        SizedBox(width: 16),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                _equipment!.name,
-                                                style: TextStyle(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              SizedBox(height: 4),
-                                              Text('Serial: ${_equipment!.serialNumber}'),
-                                              SizedBox(height: 4),
-                                              Text('Category: ${_equipment!.category}'),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
+                                    Container(
+                                      width: 80,
+                                      height: 80,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: Colors.grey),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: _equipment!.imageUrl.isNotEmpty
+                                          ? Image.network(_equipment!.imageUrl)
+                                          : Icon(Icons.build, size: 40),
                                     ),
-                                    SizedBox(height: 16),
-                                    Text('Location: ${_equipment!.location}'),
-                                    SizedBox(height: 4),
-                                    Text('Installation Date: ${formatDate(_equipment!.installationDate)}'),
+                                    SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _equipment!.name,
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          SizedBox(height: 4),
+                                          Text('Serial: ${_equipment!.serialNumber}'),
+                                          SizedBox(height: 4),
+                                          Text('Category: ${_equipment!.category}'),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
+                                SizedBox(height: 16),
+                                Text('Location: ${_equipment!.location}'),
+                                SizedBox(height: 4),
+                                Text('Installation Date: ${formatDate(_equipment!.installationDate)}'),
+                              ],
+                            ),
                     ],
                   ),
                 ),
@@ -342,7 +344,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: priorityColor.withOpacity(0.1),
+        color: priorityColor.withValues(),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: priorityColor),
       ),
@@ -364,7 +366,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color : color.withOpacity(0.1),
+          color: isSelected ? color : color.withValues(),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: color),
         ),
@@ -380,14 +382,14 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   }
 
   void _showAddNoteDialog() {
-    final TextEditingController _noteController = TextEditingController();
+    final TextEditingController noteController = TextEditingController();
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Add Work Log'),
         content: TextField(
-          controller: _noteController,
+          controller: noteController,
           decoration: InputDecoration(
             hintText: 'Enter work done details',
             border: OutlineInputBorder(),
@@ -402,7 +404,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           ElevatedButton(
             onPressed: () {
               // Implement adding work log to Odoo
-              if (_noteController.text.isNotEmpty) {
+              if (noteController.text.isNotEmpty) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -419,3 +421,4 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     );
   }
 }
+

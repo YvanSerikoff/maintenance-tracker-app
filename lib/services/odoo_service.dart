@@ -16,7 +16,7 @@ class OdooService {
   Future<bool> authenticate(String username, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/web/login/'),
+        Uri.parse('$baseUrl/jsonrpc'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'jsonrpc': '2.0',
@@ -29,6 +29,7 @@ class OdooService {
       );
 
       final responseData = jsonDecode(response.body);
+      print ("Authentication response: $responseData['result']");
       if (responseData['result'] != null) {
         sessionId = responseData['result']['session_id'];
         uid = responseData['result']['uid'];

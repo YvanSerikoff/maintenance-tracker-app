@@ -7,7 +7,7 @@ import 'package:maintenance_app/screens/tasks/task_detail_screen.dart';
 class TaskListScreen extends StatefulWidget {
   final String status;
 
-  TaskListScreen({this.status = ''});
+  const TaskListScreen({super.key, this.status = ''});
 
   @override
   _TaskListScreenState createState() => _TaskListScreenState();
@@ -34,16 +34,21 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
-      final odooService = authService.odooService;
+      final apiService = authService.apiService;
       
-      if (odooService == null) {
+      if (apiService == null) {
         throw Exception('Not authenticated');
       }
 
-      final tasks = await odooService.getTasks(status: _activeFilter);
-      
+      final response = await apiService.getMaintenanceRequests(status: _activeFilter.isEmpty ? null : _activeFilter);
+      if (response == null || response['success'] != true) {
+        throw Exception('Failed to fetch tasks');
+      }
+      final List<dynamic> data = response['data']['requests'] ?? [];
+      final tasks = data.map((json) => MaintenanceTask.fromJson(json)).toList();
+
       setState(() {
-        _tasks = tasks;
+        _tasks = tasks.cast<MaintenanceTask>();
         _isLoading = false;
       });
     } catch (e) {
@@ -205,7 +210,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
       elevation: 2,
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: statusColor.withOpacity(0.2),
+          backgroundColor: statusColor.withValues(),
           child: Icon(statusIcon, color: statusColor),
         ),
         title: Text(
@@ -218,7 +223,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
             SizedBox(height: 4),
             Text(
               task.description.length > 70 
-                ? task.description.substring(0, 70) + '...'
+                ? '${task.description.substring(0, 70)}...'
                 : task.description,
               style: TextStyle(fontSize: 14),
             ),
@@ -244,7 +249,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
         ),
         trailing: Container(
           decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.1),
+            color: statusColor.withValues(),
             borderRadius: BorderRadius.circular(12),
           ),
           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),

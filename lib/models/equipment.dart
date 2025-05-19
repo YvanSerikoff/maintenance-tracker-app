@@ -23,15 +23,17 @@ class Equipment {
 
   factory Equipment.fromJson(Map<String, dynamic> json) {
     return Equipment(
-      id: json['id'],
-      name: json['name'],
-      serialNumber: json['serial_number'],
-      category: json['category'],
-      location: json['location'],
-      installationDate: DateTime.parse(json['installation_date']),
-      status: json['status'],
-      imageUrl: json['image_url'] ?? '',
-      specifications: json['specifications'] ?? {},
+      id: json['id'] ?? 0,
+      name: json['name']?.toString() ?? '',
+      serialNumber: json['serial_number']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
+      location: json['location']?.toString() ?? '',
+      installationDate: json['installation_date'] != null
+          ? DateTime.tryParse(json['installation_date'].toString()) ?? DateTime(1970)
+          : DateTime(1970),
+      status: json['status']?.toString() ?? '',
+      imageUrl: json['image_url']?.toString() ?? '',
+      specifications: json['specifications'] ?? const {},
     );
   }
 
@@ -47,5 +49,19 @@ class Equipment {
       'image_url': imageUrl,
       'specifications': specifications,
     };
+  }
+
+  factory Equipment.empty() {
+    return Equipment(
+      id: 0,
+      name: '',
+      serialNumber: '',
+      category: '',
+      location: '',
+      installationDate: DateTime(1970),
+      status: '',
+      imageUrl: '',
+      specifications: const {},
+    );
   }
 }

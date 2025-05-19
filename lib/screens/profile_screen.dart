@@ -8,6 +8,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
 }
@@ -112,9 +114,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openSupportWebsite() async {
-    const url = 'https://support.your-company.com';
-    if (await canLaunch(url)) {
-      await launch(url);
+    Uri uri = Uri.parse('https://support.your-company.com');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -132,8 +134,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       query: 'subject=Maintenance App Support Request&body=App Version: $_appVersion (Build $_buildNumber)\n\n',
     );
     
-    if (await canLaunch(emailUri.toString())) {
-      await launch(emailUri.toString());
+    if (await canLaunchUrl(emailUri)) {
+      await launchUrl(emailUri);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
