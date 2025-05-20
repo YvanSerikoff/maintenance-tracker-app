@@ -6,6 +6,7 @@ import 'package:maintenance_app/models/equipment.dart';
 import 'package:maintenance_app/services/auth_service.dart';
 import 'package:maintenance_app/utils/date_formatter.dart';
 import 'package:maintenance_app/config/constants.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/flutter_basic_auth.dart';
 
@@ -21,30 +22,30 @@ class TaskDetailScreen extends StatefulWidget {
 class TaskDetailScreenState extends State<TaskDetailScreen> {
   bool _isSaving = false;
   Equipment? _equipment;
-  String? _selectedStatus;
+  int? _selectedStatus;
 
   @override
   void initState() {
     super.initState();
-    _selectedStatus = AppConstants.statusIdToName[widget.task.status];
+    _selectedStatus = widget.task.status;
     // Utilise WidgetsBinding pour accéder au context après l'init
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authService = Provider.of<AuthService>(context, listen: false);
       final apiService = authService.apiService;
       if (apiService != null) {
-        fetchEquipment(widget.task.equipmentId, apiService);
+        fetchEquipment(widget.task.id, apiService);
       } else {
         print('Erreur : AuthService non initialisé');
       }
     });
   }
 
-  void fetchEquipment(int equipmentId, CMMSApiService apiService) async {
+  void fetchEquipment(int requestId, CMMSApiService apiService) async {
     try {
-      final response = await apiService.getEquipmentById(equipmentId);
+      final response = await apiService.getEquipmentByRequest(requestId);
       if (response != null && response['success'] == true) {
         setState(() {
-          _equipment = Equipment.fromJson(response['data']);
+          _equipment = Equipment.fromJson(response['data']['equipment_id']);
         });
         print('Équipement récupéré : ${_equipment?.category}');
       } else {
@@ -55,8 +56,7 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
     }
   }
 
-
-  Future<void> _updateTaskStatus(String newStatus) async {
+  Future<void> _updateTaskStatus(int newStatus) async {
     if (newStatus == widget.task.status) return;
 
     setState(() {
@@ -66,23 +66,20 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       final apiService = authService.apiService;
-      final stageId = AppConstants.statusToStageId[newStatus];
 
       if (apiService == null) {
         throw Exception('Not authenticated');
       }
-      if (stageId == null) {
-        throw Exception('Statut inconnu');
-      }
+
+      final Map<String, dynamic> updateData = {
+        'stage_id': newStatus
+      };
 
       final response = await apiService.updateMaintenanceRequest(
         widget.task.id,
-        {
-          'status': newStatus,
-          'stage_id': stageId,
-        },
+        updateData,
       );
-      print('Réponse API : $response');
+
       if (response != null && response['success'] == true) {
         setState(() {
           _selectedStatus = newStatus;
@@ -95,7 +92,10 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
           ),
         );
       } else {
-        throw Exception('Échec de la mise à jour du statut');
+        final errorMessage = response != null ?
+        (response['message'] ?? 'Échec de la mise à jour du statut') :
+        'Échec de la mise à jour du statut';
+        throw Exception(errorMessage);
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -125,7 +125,6 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
             children: [
               // Task Header
               Card(
-                margin: const EdgeInsets.symmetric(vertical: 8), // Ajoute un espace vertical
                 elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -152,12 +151,11 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
                   ),
                 ),
               ),
-              
+
               SizedBox(height: 16),
-              
+
               // Task Status
               Card(
-                margin: const EdgeInsets.symmetric(vertical: 8), // Ajoute un espace vertical
                 elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -174,22 +172,21 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
                           : Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildStatusButton('pending', 'Pending', Colors.orange),
-                          _buildStatusButton('in_progress', 'In Progress', Colors.blue),
-                          _buildStatusButton('completed', 'Completed', Colors.green),
-                          _buildStatusButton('rebut', 'Rebut', Colors.redAccent), // Nouveau statut
+                          _buildStatusButton(AppConstants.STATUS_PENDING, 'Pending', Colors.orange),
+                          _buildStatusButton(AppConstants.STATUS_IN_PROGRESS, 'In progress', Colors.blue),
+                          _buildStatusButton(AppConstants.STATUS_COMPLETED, 'Completed', Colors.green),
+                          _buildStatusButton(AppConstants.STATUS_CANCELLED, 'Canceled', Colors.redAccent),
                         ],
                       ),
                     ],
                   ),
                 ),
               ),
-              
+
               SizedBox(height: 16),
-              
+
               // Task Description
               Card(
-                margin: const EdgeInsets.symmetric(vertical: 8), // Ajoute un espace vertical
                 elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -208,12 +205,11 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
                   ),
                 ),
               ),
-              
+
               SizedBox(height: 16),
-              
+
               // Equipment Information
               Card(
-                margin: const EdgeInsets.symmetric(vertical: 8), // Ajoute un espace vertical
                 elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -228,55 +224,57 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
                       _equipment == null
                           ? Text('Equipment information not available')
                           : Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Container(
-                                      width: 80,
-                                      height: 80,
-                                      decoration: BoxDecoration(
-                                        border: Border.all(color: Colors.grey),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: _equipment!.imageUrl.isNotEmpty
-                                          ? Image.network(_equipment!.imageUrl)
-                                          : Icon(Icons.build, size: 40),
-                                    ),
-                                    SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            _equipment!.name,
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          SizedBox(height: 4),
-                                          Text('Serial: ${_equipment!.serialNumber}'),
-                                          SizedBox(height: 4),
-                                          Text('Category: ${_equipment!.category}'),
-                                        ],
+                                    Text(
+                                      _equipment!.name,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
+                                    SizedBox(height: 4),
+                                    Text('Category: ${_equipment!.category}'),
                                   ],
                                 ),
-                                SizedBox(height: 16),
-                                Text('Location: ${_equipment!.location}'),
-                                SizedBox(height: 4),
-                                Text('Installation Date: ${formatDate(_equipment!.installationDate)}'),
-                              ],
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 16),
+                          Text('Location: ${_equipment!.location}'),
+                          if (_equipment!.model3dViewerUrl != null) ...[
+                            SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: () async {
+                                final url = _equipment!.model3dViewerUrl!;
+                                if (await canLaunchUrl(Uri.parse(url))) {
+                                  await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Impossible d\'ouvrir le lien')),
+                                  );
+                                }
+                              },
+                              icon: Icon(Icons.view_in_ar),
+                              label: Text('View 3D Model'),
                             ),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
                 ),
               ),
-              
+
               SizedBox(height: 16),
-              
+
               // Add Note or Work Log button
               ElevatedButton.icon(
                 onPressed: () {
@@ -322,7 +320,7 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
   Widget _buildPriorityIndicator(int priority) {
     String priorityText;
     Color priorityColor;
-    
+
     switch (priority) {
       case 0:
         priorityText = 'Low';
@@ -348,7 +346,7 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: priorityColor.withAlpha(50),
+        color: priorityColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: priorityColor),
       ),
@@ -362,15 +360,15 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
     );
   }
 
-  Widget _buildStatusButton(String status, String label, Color color) {
+  Widget _buildStatusButton(int status, String label, Color color) {
     bool isSelected = _selectedStatus == status;
-    
+
     return InkWell(
       onTap: () => _updateTaskStatus(status),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color : color.withAlpha(50),
+          color: isSelected ? color : color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: color),
         ),
@@ -387,7 +385,7 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
 
   void _showAddNoteDialog() {
     final TextEditingController noteController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -424,5 +422,30 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
       ),
     );
   }
-}
 
+  void _showModel3DViewerDialog(String url) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('3D Model Viewer'),
+        content: Container(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('URL: $url'),
+              SizedBox(height: 16),
+              Text('Note: Pour visualiser le modèle 3D, ouvrez cette URL dans un navigateur')
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Fermer'),
+          ),
+        ],
+      ),
+    );
+  }
+}

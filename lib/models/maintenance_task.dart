@@ -3,7 +3,7 @@ class MaintenanceTask {
   final String name;
   final String description;
   final DateTime scheduledDate;
-  final int status; // 'pending', 'in_progress', 'completed', 'cancelled'
+  final int status;
   final int priority; // 0-3 (low to high)
   final int technicianId;
   final int equipmentId;

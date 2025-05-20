@@ -128,7 +128,7 @@ class DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _checkAndPromptEmail(BuildContext context, User user) {
-    if (!user.hasEmail || user.email.isEmpty) {
+    if (user.email == null || user.email.isEmpty) {
       showDialog(
         context: context,
         builder: (context) {
@@ -175,6 +175,8 @@ class DashboardScreenState extends State<DashboardScreen> {
           );
         },
       );
+    }else{
+      print('Email already exists: ${user.email}');
     }
   }
 

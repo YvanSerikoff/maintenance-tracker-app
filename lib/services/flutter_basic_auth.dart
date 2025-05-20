@@ -226,6 +226,25 @@ class CMMSApiService {
     }
   }
 
+  getEquipmentByRequest(int requestId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/flutter/maintenance/requests/$requestId'),
+        headers: defaultHeaders,
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Erreur: ${response.statusCode} - ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Exception: $e');
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> updateUserEmail(String email) async {
     try {
       final response = await http.put(
