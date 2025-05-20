@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:maintenance_app/screens/tasks/task_list_screen.dart';
+import 'package:maintenance_app/services/flutter_basic_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:maintenance_app/services/auth_service.dart';
@@ -6,6 +8,9 @@ import 'package:maintenance_app/config/constants.dart';
 import 'package:maintenance_app/screens/auth/login_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../models/user.dart';
+import 'dashboard/dashboard_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,7 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = false;
   String _appVersion = '';
   String _buildNumber = '';
-  
+
   @override
   void initState() {
     super.initState();
@@ -412,6 +417,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 2,
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.assignment),
+            label: 'Tasks',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+        ],
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => DashboardScreen()),
+            );
+          } else if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => TaskListScreen()),
+            );
+          }
+        },
+      ),
     );
   }
 }

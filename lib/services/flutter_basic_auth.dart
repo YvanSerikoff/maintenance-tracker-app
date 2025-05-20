@@ -38,11 +38,29 @@ class CMMSApiService {
     'Content-Type': 'application/json',
   };
 
+  Future<Map<String, dynamic>?> getUser() async{
+    try{
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/flutter/user/profile'),
+        headers: defaultHeaders,
+      );
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Erreur: ${response.statusCode} - ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Exception: $e');
+      return null;
+    }
+  }
+
   // Récupérer le dashboard complet
   Future<Map<String, dynamic>?> getDashboard() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api/maintenance/dashboard'),
+        Uri.parse('$baseUrl/api/flutter/maintenance/dashboard'),
         headers: defaultHeaders,
       );
 
@@ -72,7 +90,7 @@ class CMMSApiService {
     int? equipmentId,
   }) async {
     try {
-      String url = '$baseUrl/api/maintenance/requests?limit=$limit&offset=$offset';
+      String url = '$baseUrl/api/flutter/maintenance/requests?limit=$limit&offset=$offset';
       
       if (status != null) url += '&status=$status';
       if (equipmentId != null) url += '&equipment_id=$equipmentId';
@@ -102,7 +120,7 @@ class CMMSApiService {
     int? categoryId,
   }) async {
     try {
-      String url = '$baseUrl/api/maintenance/equipment?limit=$limit&offset=$offset';
+      String url = '$baseUrl/api/flutter/maintenance/equipment?limit=$limit&offset=$offset';
       
       if (has3dModel != null) url += '&has_3d_model=${has3dModel.toString()}';
       if (categoryId != null) url += '&category_id=$categoryId';
@@ -145,7 +163,7 @@ class CMMSApiService {
       if (scheduleDate != null) requestData['schedule_date'] = scheduleDate;
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/maintenance/requests'),
+        Uri.parse('$baseUrl/api/flutter/maintenance/requests'),
         headers: defaultHeaders,
         body: json.encode(requestData),
       );
@@ -206,55 +224,25 @@ class CMMSApiService {
       return null;
     }
   }
-}
 
-// Exemple d'utilisation
-void main() async {
-  // Test d'encodage
-  String username = 'gordon.delangue';
-  String password = 'odoo123';
-  String encoded = encodeBasicAuth(username, password);
-  
-  print('Username: $username');
-  print('Password: $password');
-  print('Encoded: $encoded');
-  print('Auth Header: ${getAuthHeader(username, password)}');
-  
-  // Vérification
-  if (encoded == 'Z29yZG9uLmRlbGFuZ3VlOm9kb28xMjM=') {
-    print('✓ Encoding correct!');
-  } else {
-    print('✗ Encoding incorrect!');
-  }
+  Future<Map<String, dynamic>?> updateUserEmail(String email) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/api/flutter/user/profile/update'),
+        headers: defaultHeaders,
+        body: json.encode({'email': email}),
+      );
 
-  // Exemple d'utilisation de l'API
-  CMMSApiService api = CMMSApiService(
-    baseUrl: 'http://192.168.1.71:8069',
-    username: 'gordon.delangue',
-    password: 'odoo123',
-  );
-
-  // Test du dashboard
-  print('\n=== Test Dashboard ===');
-  Map<String, dynamic>? dashboard = await api.getDashboard();
-  if (dashboard != null && dashboard['success']) {
-    print('Dashboard récupéré avec succès!');
-    print('Demandes actives: ${dashboard['data']['summary']['total_active_requests']}');
-    print('Équipements avec 3D: ${dashboard['data']['summary']['equipment_with_3d']}');
-  }
-
-  // Test des demandes
-  print('\n=== Test Demandes ===');
-  Map<String, dynamic>? requests = await api.getMaintenanceRequests();
-  if (requests != null && requests['success']) {
-    print('Demandes récupérées: ${requests['data']['total_count']}');
-  }
-
-  // Test des équipements
-  print('\n=== Test Équipements ===');
-  Map<String, dynamic>? equipment = await api.getEquipment(has3dModel: true);
-  if (equipment != null && equipment['success']) {
-    print('Équipements avec 3D: ${equipment['data']['total_count']}');
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Erreur: ${response.statusCode} - ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Exception: $e');
+      return null;
+    }
   }
 }
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:maintenance_app/services/flutter_basic_auth.dart';
 
@@ -24,6 +25,9 @@ class AuthService with ChangeNotifier {
   bool get isAuthenticated => _apiService != null;
 
   AuthService();
+
+  get user async =>
+    _apiService?.getUser();
 
   /// Connexion avec username et password via Basic Auth
   Future<bool> login({

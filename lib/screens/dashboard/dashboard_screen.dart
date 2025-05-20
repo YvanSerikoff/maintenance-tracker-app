@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:maintenance_app/config/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:maintenance_app/services/auth_service.dart';
 import 'package:maintenance_app/models/maintenance_task.dart';
 import 'package:maintenance_app/screens/tasks/task_list_screen.dart';
 import 'package:maintenance_app/screens/profile_screen.dart';
 import 'package:maintenance_app/screens/auth/login_screen.dart';
-import 'package:maintenance_app/config/constants.dart';
-
+import '../../models/user.dart';
 import '../tasks/task_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  _DashboardScreenState createState() => _DashboardScreenState();
+  DashboardScreenState createState() => DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
   List<MaintenanceTask> _tasks = [];
   int _pendingCount = 0;
@@ -28,7 +26,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _loadUserData();
     _loadDashboardData();
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final apiService = authService.apiService;
+
+      if (apiService == null) {
+        throw Exception('Not authenticated');
+      }
+
+      final response = await apiService.getUser();
+      if (response == null || response['success'] != true) {
+        // Affiche le message d'erreur de l'API si disponible
+        final apiMessage = response != null && response['message'] != null
+            ? response['message']
+            : 'Failed to fetch tasks';
+        throw Exception(apiMessage);
+      }
+
+      final json = response['data'];
+      final user = User.fromJson(json);
+
+      setState(() {
+        _checkAndPromptEmail(context, user);
+        _isLoading = false;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading user: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _loadDashboardData() async {
@@ -61,7 +102,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _pendingCount = _tasks.where((task) => task.status == '1').length;
         _inProgressCount = _tasks.where((task) => task.status == '2').length;
         _completedCount = _tasks.where((task) => task.status == '3').length;
-        print('nom : ${_tasks[0].status}');
         _rebuttalCount = _tasks.where((task) => task.status == '4').length;
         _isLoading = false;
       });
@@ -84,6 +124,72 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => LoginScreen()),
     );
+  }
+
+  void _checkAndPromptEmail(BuildContext context, User user) {
+    if (!user.hasEmail || user.email.isEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) {
+          final emailController = TextEditingController();
+          return AlertDialog(
+            title: Text('Ajouter un email'),
+            content: TextField(
+              controller: emailController,
+              decoration: InputDecoration(labelText: 'Nouvel email'),
+              keyboardType: TextInputType.emailAddress,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  final authService = Provider.of<AuthService>(context, listen: false);
+                  final apiService = authService.apiService;
+                  if (apiService == null) {
+                    Navigator.of(context).pop();
+                    return;
+                  }else{
+                    apiService.updateUserEmail(emailController.text).then((response) {
+                      if (response != null && response['success'] == true) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Email mis à jour avec succès'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Erreur lors de la mise à jour de l\'email'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    });
+                  }
+                  Navigator.of(context).pop();
+                },
+                child: Text('Valider'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case '1':
+        return 'Pending';
+      case '2':
+        return 'In Progress';
+      case '3':
+        return 'Completed';
+      case '4':
+        return 'Rebuttal';
+      default:
+        return 'Unknown';
+    }
   }
 
   @override
@@ -174,6 +280,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       SizedBox(height: 16),
 
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           _buildStatusCard(
                             context,
@@ -184,7 +291,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 () => _navigateToTaskList('pending'),
                             'Tâches en attente',
                           ),
-                          SizedBox(width: 16),
                           _buildStatusCard(
                             context,
                             'In Progress',
@@ -194,7 +300,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 () => _navigateToTaskList('in_progress'),
                             'Tâches en cours',
                           ),
-                          SizedBox(width: 16),
                           _buildStatusCard(
                             context,
                             'Completed',
@@ -204,15 +309,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 () => _navigateToTaskList('completed'),
                             'Tâches terminées',
                           ),
-                          SizedBox(width: 16),
                           _buildStatusCard(
-                              context,
-                              'Rebuttal',
-                              _rebuttalCount,
-                              Colors.redAccent,
-                              Icons.error,
-                                  () => _navigateToTaskList('rebuttal'),
-                              'Mis sur le côté')
+                            context,
+                            'Rebuttal',
+                            _rebuttalCount,
+                            Colors.redAccent,
+                            Icons.error,
+                                () => _navigateToTaskList('rebuttal'),
+                            'Mis sur le côté',
+                          ),
                         ],
                       ),
                       
@@ -296,13 +401,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       Color color,
       IconData icon,
       VoidCallback onTap,
-      String contextText, // Nouveau paramètre
+      String contextText,
       ) {
-    return Expanded(
+    return Flexible(
       child: GestureDetector(
         onTap: onTap,
         child: Card(
-          color: color.withOpacity(0.08),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -327,7 +431,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 SizedBox(height: 2),
                 Text(
-                  contextText, // Affichage du contexte
+                  contextText,
                   style: TextStyle(
                     color: Colors.grey.shade600,
                     fontSize: 12,
@@ -345,14 +449,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildTaskCard(BuildContext context, MaintenanceTask task) {
     Color statusColor;
     switch (task.status) {
-      case 'pending':
+      case '1':
         statusColor = Colors.orange;
         break;
-      case 'in_progress':
+      case '2':
         statusColor = Colors.blue;
         break;
-      case 'completed':
+      case '3':
         statusColor = Colors.green;
+        break;
+      case '4':
+        statusColor = Colors.redAccent;
         break;
       default:
         statusColor = Colors.grey;
@@ -389,7 +496,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         trailing: Chip(
           label: Text(
-            _capitalizeFirst(task.status.replaceAll('_', ' ')),
+            _statusLabel(task.status),
             style: TextStyle(
               color: Colors.white,
               fontSize: 12,

@@ -4,7 +4,7 @@ class AppConstants {
   static const String DEFAULT_DATABASE = 'odoo_cmms';
   
   // API endpoints
-  static const String API_AUTHENTICATE = '/api/user/login';
+  static const String API_AUTHENTICATE = '/api/flutter/user/login';
   static const String API_DESTROY_SESSION = '/web/session/destroy';
   static const String API_CALL_KW = '/web/dataset/call_kw';
   

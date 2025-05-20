@@ -125,6 +125,7 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
             children: [
               // Task Header
               Card(
+                margin: const EdgeInsets.symmetric(vertical: 8), // Ajoute un espace vertical
                 elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -156,6 +157,7 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
               
               // Task Status
               Card(
+                margin: const EdgeInsets.symmetric(vertical: 8), // Ajoute un espace vertical
                 elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -187,6 +189,7 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
               
               // Task Description
               Card(
+                margin: const EdgeInsets.symmetric(vertical: 8), // Ajoute un espace vertical
                 elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -210,6 +213,7 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
               
               // Equipment Information
               Card(
+                margin: const EdgeInsets.symmetric(vertical: 8), // Ajoute un espace vertical
                 elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),

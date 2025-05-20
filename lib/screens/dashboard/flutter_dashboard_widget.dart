@@ -103,7 +103,7 @@ class _CMMSDashboardState extends State<CMMSDashboard> {
       String authHeader = 'Basic ${encodeBasicAuth(widget.username, widget.password)}';
       
       final response = await http.get(
-        Uri.parse('${widget.baseUrl}/api/maintenance/dashboard'),
+        Uri.parse('${widget.baseUrl}/api/flutter/maintenance/dashboard'),
         headers: {
           'Authorization': authHeader,
           'Content-Type': 'application/json',

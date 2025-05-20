@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:maintenance_app/services/flutter_basic_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:maintenance_app/config/theme.dart';
 import 'package:maintenance_app/services/auth_service.dart';
@@ -10,6 +11,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
+        Provider<CMMSApiService>(create: (_) => CMMSApiService(baseUrl: 'http://192.168.1.71:8069', username: 'admin', password: 'admin')),
       ],
       child: MyApp(),
     ),

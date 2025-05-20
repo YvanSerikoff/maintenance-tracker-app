@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:maintenance_app/screens/dashboard/dashboard_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:maintenance_app/services/auth_service.dart';
 import 'package:maintenance_app/models/maintenance_task.dart';
 import 'package:maintenance_app/screens/tasks/task_detail_screen.dart';
+
+import '../profile_screen.dart';
 
 class TaskListScreen extends StatefulWidget {
   final String status;
@@ -89,6 +92,21 @@ class _TaskListScreenState extends State<TaskListScreen> {
     }).toList();
   }
 
+  String _statusLabel(String status) {
+    switch (status) {
+      case '1':
+        return 'Pending';
+      case '2':
+        return 'In Progress';
+      case '3':
+        return 'Completed';
+      case '4':
+        return 'Rebuttal';
+      default:
+        return 'Unknown';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,20 +139,20 @@ class _TaskListScreenState extends State<TaskListScreen> {
                   onSelected: _setFilter,
                   itemBuilder: (context) => [
                     PopupMenuItem(
-                      value: '',
-                      child: Text('All Tasks'),
-                    ),
-                    PopupMenuItem(
-                      value: 'pending',
+                      value: '1',
                       child: Text('Pending'),
                     ),
                     PopupMenuItem(
-                      value: 'in_progress',
+                      value: '2',
                       child: Text('In Progress'),
                     ),
                     PopupMenuItem(
-                      value: 'completed',
+                      value: '3',
                       child: Text('Completed'),
+                    ),
+                    PopupMenuItem(
+                      value: '4',
+                      child: Text('Rebuttal'),
                     ),
                   ],
                 ),
@@ -167,6 +185,36 @@ class _TaskListScreenState extends State<TaskListScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 1,
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.assignment),
+            label: 'Tasks',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+        ],
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => DashboardScreen()),
+            );
+          } else if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ProfileScreen()),
+            );
+          }
+        },
+      ),
     );
   }
 
@@ -186,19 +234,22 @@ class _TaskListScreenState extends State<TaskListScreen> {
   Widget _buildTaskCard(BuildContext context, MaintenanceTask task) {
     Color statusColor;
     IconData statusIcon;
-    
     switch (task.status) {
-      case 'pending':
+      case '1':
         statusColor = Colors.orange;
         statusIcon = Icons.hourglass_empty;
         break;
-      case 'in_progress':
+      case '2':
         statusColor = Colors.blue;
         statusIcon = Icons.engineering;
         break;
-      case 'completed':
+      case '3':
         statusColor = Colors.green;
         statusIcon = Icons.check_circle;
+        break;
+      case '4':
+        statusColor = Colors.redAccent;
+        statusIcon = Icons.error;
         break;
       default:
         statusColor = Colors.grey;
@@ -252,15 +303,14 @@ class _TaskListScreenState extends State<TaskListScreen> {
             color: statusColor.withValues(),
             borderRadius: BorderRadius.circular(12),
           ),
-          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Text(
-            _capitalizeFirst(task.status.replaceAll('_', ' ')),
-            style: TextStyle(
-              color: statusColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
+          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),child: Text(
+          _statusLabel(task.status),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
           ),
+        ),
         ),
         onTap: () {
           Navigator.push(
@@ -271,6 +321,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
           ).then((_) => _loadTasks());
         },
       ),
+
     );
   }
 
