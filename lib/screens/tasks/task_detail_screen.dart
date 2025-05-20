@@ -26,7 +26,7 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedStatus = widget.task.status;
+    _selectedStatus = AppConstants.statusIdToName[widget.task.status];
     // Utilise WidgetsBinding pour accéder au context après l'init
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authService = Provider.of<AuthService>(context, listen: false);
@@ -348,7 +348,7 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: priorityColor.withValues(),
+        color: priorityColor.withAlpha(50),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: priorityColor),
       ),
@@ -370,7 +370,7 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color : color.withValues(),
+          color: isSelected ? color : color.withAlpha(50),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: color),
         ),

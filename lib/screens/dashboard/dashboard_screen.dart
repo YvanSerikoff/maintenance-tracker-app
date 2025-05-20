@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:maintenance_app/config/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:maintenance_app/services/auth_service.dart';
 import 'package:maintenance_app/models/maintenance_task.dart';
@@ -99,10 +100,10 @@ class DashboardScreenState extends State<DashboardScreen> {
       setState(() {
         _tasks = tasks.cast<MaintenanceTask>();
 
-        _pendingCount = _tasks.where((task) => task.status == '1').length;
-        _inProgressCount = _tasks.where((task) => task.status == '2').length;
-        _completedCount = _tasks.where((task) => task.status == '3').length;
-        _rebuttalCount = _tasks.where((task) => task.status == '4').length;
+        _pendingCount = _tasks.where((task) => task.status == 1).length;
+        _inProgressCount = _tasks.where((task) => task.status == 2).length;
+        _completedCount = _tasks.where((task) => task.status == 3).length;
+        _rebuttalCount = _tasks.where((task) => task.status == 4).length;
         _isLoading = false;
       });
     } catch (e) {
@@ -177,15 +178,15 @@ class DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  String _statusLabel(String status) {
+  String _statusLabel(int status) {
     switch (status) {
-      case '1':
+      case 1:
         return 'Pending';
-      case '2':
+      case 2:
         return 'In Progress';
-      case '3':
+      case 3:
         return 'Completed';
-      case '4':
+      case 4:
         return 'Rebuttal';
       default:
         return 'Unknown';
@@ -288,7 +289,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                             _pendingCount,
                             Colors.orange,
                             Icons.hourglass_empty,
-                                () => _navigateToTaskList('pending'),
+                                () => _navigateToTaskList(1),
                             'Tâches en attente',
                           ),
                           _buildStatusCard(
@@ -297,7 +298,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                             _inProgressCount,
                             Colors.blue,
                             Icons.engineering,
-                                () => _navigateToTaskList('in_progress'),
+                                () => _navigateToTaskList(2),
                             'Tâches en cours',
                           ),
                           _buildStatusCard(
@@ -306,7 +307,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                             _completedCount,
                             Colors.green,
                             Icons.check_circle,
-                                () => _navigateToTaskList('completed'),
+                                () => _navigateToTaskList(3),
                             'Tâches terminées',
                           ),
                           _buildStatusCard(
@@ -315,7 +316,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                             _rebuttalCount,
                             Colors.redAccent,
                             Icons.error,
-                                () => _navigateToTaskList('rebuttal'),
+                                () => _navigateToTaskList(4),
                             'Mis sur le côté',
                           ),
                         ],
@@ -332,7 +333,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                             style: Theme.of(context).textTheme.displayMedium,
                           ),
                           TextButton(
-                            onPressed: () => _navigateToTaskList(''),
+                            onPressed: () => _navigateToTaskList(0),
                             child: Text('View All'),
                           ),
                         ],
@@ -382,7 +383,7 @@ class DashboardScreenState extends State<DashboardScreen> {
         ],
         onTap: (index) {
           if (index == 1) {
-            _navigateToTaskList('');
+            _navigateToTaskList(0);
           } else if (index == 2) {
             Navigator.push(
               context,
@@ -448,35 +449,51 @@ class DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildTaskCard(BuildContext context, MaintenanceTask task) {
     Color statusColor;
+    IconData statusIcon;
     switch (task.status) {
-      case '1':
+      case 1:
         statusColor = Colors.orange;
+        statusIcon = Icons.hourglass_empty;
         break;
-      case '2':
+      case 2:
         statusColor = Colors.blue;
+        statusIcon = Icons.engineering;
         break;
-      case '3':
+      case 3:
         statusColor = Colors.green;
+        statusIcon = Icons.check_circle;
         break;
-      case '4':
+      case 4:
         statusColor = Colors.redAccent;
+        statusIcon = Icons.cancel;
         break;
       default:
         statusColor = Colors.grey;
+        statusIcon = Icons.help;
+    }
+
+    // Couleur de priorité (urgence)
+    Color priorityColor;
+    switch (task.priority) {
+      case 1:
+        priorityColor = Colors.yellow;
+        break;
+      case 2:
+        priorityColor = Colors.orange;
+        break;
+      case 3:
+        priorityColor = Colors.red;
+        break;
+      default:
+        priorityColor = Colors.green;
     }
 
     return Card(
       margin: EdgeInsets.symmetric(vertical: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: statusColor.withValues(),
-          child: Text(
-            task.priority.toString(),
-            style: TextStyle(
-              color: statusColor,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          backgroundColor: statusColor.withAlpha(50),
+          child: Icon(statusIcon, color: statusColor),
         ),
         title: Text(
           task.name,
@@ -494,16 +511,33 @@ class DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
-        trailing: Chip(
-          label: Text(
-            _statusLabel(task.status),
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Chip(
+              label: Text(
+                _statusLabel(task.status),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+              ),
+              backgroundColor: statusColor,
+              padding: EdgeInsets.all(0),
             ),
-          ),
-          backgroundColor: statusColor,
-          padding: EdgeInsets.all(0),
+            SizedBox(width: 4),
+            Chip(
+              label: Text(
+                'Urgence ${task.priority}',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+              ),
+              backgroundColor: priorityColor,
+              padding: EdgeInsets.all(0),
+            ),
+          ],
         ),
         onTap: () {
           _navigateToTaskDetail(task);
@@ -512,7 +546,8 @@ class DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _navigateToTaskList(String status) async {
+  void _navigateToTaskList(int status) async {
+    print('Navigating to task list with status: $status');
     await Navigator.push(
       context,
       MaterialPageRoute(

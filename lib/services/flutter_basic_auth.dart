@@ -86,13 +86,14 @@ class CMMSApiService {
   Future<Map<String, dynamic>?> getMaintenanceRequests({
     int limit = 100,
     int offset = 0,
-    String? status,
+    String? status, // Doit être l'ID du statut (ex: '1', '2', ...)
     int? equipmentId,
   }) async {
     try {
       String url = '$baseUrl/api/flutter/maintenance/requests?limit=$limit&offset=$offset';
-      
-      if (status != null) url += '&status=$status';
+
+      // Ajoute l'ID du statut si fourni
+      if (status != null && status.isNotEmpty) url += '&status=$status';
       if (equipmentId != null) url += '&equipment_id=$equipmentId';
 
       final response = await http.get(

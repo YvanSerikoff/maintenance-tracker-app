@@ -19,15 +19,22 @@ class AppConstants {
   static const String KEY_DARK_MODE = 'dark_mode';
 
   // Maintenance status codes
-  static const String STATUS_PENDING = 'pending';
-  static const String STATUS_IN_PROGRESS = 'in_progress';
-  static const String STATUS_COMPLETED = 'completed';
-  static const String STATUS_CANCELLED = 'cancelled';
+  static const int STATUS_PENDING = 1;
+  static const int STATUS_IN_PROGRESS = 2;
+  static const int STATUS_COMPLETED = 3;
+  static const int STATUS_CANCELLED = 4;
 
   static const Map<String, int> statusToStageId = {
     'pending': 1,
     'in_progress': 2,
     'completed': 3,
     'rebut': 4,
+  };
+
+  static const Map<int, String> statusIdToName = {
+    1: 'Pending',
+    2: 'In Progress',
+    3: 'Completed',
+    4: 'Rebut',
   };
 }

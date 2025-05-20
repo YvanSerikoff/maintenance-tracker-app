@@ -3,7 +3,7 @@ class MaintenanceTask {
   final String name;
   final String description;
   final DateTime scheduledDate;
-  final String status; // 'pending', 'in_progress', 'completed', 'cancelled'
+  final int status; // 'pending', 'in_progress', 'completed', 'cancelled'
   final int priority; // 0-3 (low to high)
   final int technicianId;
   final int equipmentId;
@@ -35,7 +35,7 @@ class MaintenanceTask {
       scheduledDate: json['scheduled_date'] != null
           ? DateTime.tryParse(json['scheduled_date'].toString()) ?? DateTime(1970)
           : DateTime(1970),
-      status: json['stage_id']['id']?.toString() ?? '',
+      status: json['stage_id']['id'],
       priority: json['priority'] is int
           ? json['priority']
           : int.tryParse(json['priority']?.toString() ?? '0') ?? 0,
