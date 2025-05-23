@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:maintenance_app/services/flutter_basic_auth.dart';
+import 'package:maintenance_app/services/offline_manager.dart';
 
 class AuthService with ChangeNotifier {
   // L'instance du service API CMMS utilisant Basic Auth
@@ -13,46 +14,52 @@ class AuthService with ChangeNotifier {
   // Informations utilisateur
   String? _userName;
   String? _userEmail;
+  bool _isOfflineMode = false;
 
   // Stockage sécurisé pour les données sensibles
   final _secureStorage = const FlutterSecureStorage();
+  final OfflineManager _offlineManager = OfflineManager();
 
   // Getters pour les infos utilisateur
   String? get userName => _userName;
   String? get userEmail => _userEmail;
+  bool get isOfflineMode => _isOfflineMode;
 
   // Statut d'authentification
-  bool get isAuthenticated => _apiService != null;
+  bool get isAuthenticated => _apiService != null || _isOfflineMode;
 
   AuthService();
 
-  get user async =>
-    _apiService?.getUser();
+  get user async => _apiService?.getUser();
 
-  /// Connexion avec username et password via Basic Auth
+  /// Connexion avec username et password via Basic Auth (avec support offline)
   Future<bool> login({
     required String username,
     required String password,
     required String serverUrl,
-    String? database, // ignoré pour Basic Auth
+    String? database,
     bool rememberMe = false,
+    bool forceOffline = false,
   }) async {
+    // Si mode offline forcé ou pas de connexion
+    if (forceOffline || !_offlineManager.isOnline) {
+      return await _loginOffline(username, password, serverUrl, database);
+    }
+
     try {
-      // Créer une nouvelle instance du service API
+      // Tentative de connexion online
       final apiService = CMMSApiService(
         baseUrl: serverUrl,
         username: username,
         password: password,
       );
 
-      // Vérifier l'authentification en appelant une API protégée (dashboard)
       final dashboard = await apiService.getDashboard();
       if (dashboard != null && dashboard['success'] == true) {
         _apiService = apiService;
-
-        // Récupérer les infos utilisateur si possible (exemple: username/email)
         _userName = username;
-        _userEmail = null; // À adapter si l'API retourne l'email
+        _userEmail = null;
+        _isOfflineMode = false;
 
         if (rememberMe) {
           await _saveCredentials(
@@ -63,13 +70,65 @@ class AuthService with ChangeNotifier {
           );
         }
         await _saveServerSettings(serverUrl, database ?? '');
+        await _saveLastSuccessfulLogin(username, password, serverUrl, database);
 
         notifyListeners();
         return true;
       }
       return false;
     } catch (e) {
+      print('Online login failed, trying offline: $e');
+      // Si la connexion online échoue, essayer offline
+      return await _loginOffline(username, password, serverUrl, database);
+    }
+  }
+
+  /// Connexion en mode offline avec validation des dernières credentials
+  Future<bool> _loginOffline(String username, String password, String serverUrl, String? database) async {
+    try {
+      // Vérifier si on a des credentials stockées
+      final savedUsername = await _secureStorage.read(key: 'last_username');
+      final savedPassword = await _secureStorage.read(key: 'last_password');
+      final savedServerUrl = await _secureStorage.read(key: 'last_server_url');
+
+      // Valider que les credentials correspondent aux dernières utilisées avec succès
+      if (savedUsername == username &&
+          savedPassword == password &&
+          savedServerUrl == serverUrl) {
+
+        // Créer un service API "offline" (sans vraiment se connecter)
+        _apiService = CMMSApiService(
+          baseUrl: serverUrl,
+          username: username,
+          password: password,
+        );
+
+        _userName = username;
+        _userEmail = null;
+        _isOfflineMode = true;
+
+        notifyListeners();
+        return true;
+      } else {
+        throw Exception('Invalid offline credentials. Please connect online first.');
+      }
+    } catch (e) {
+      print('Offline login failed: $e');
       return false;
+    }
+  }
+
+  /// Sauvegarder les dernières credentials utilisées avec succès
+  Future<void> _saveLastSuccessfulLogin(String username, String password, String serverUrl, String? database) async {
+    try {
+      await _secureStorage.write(key: 'last_username', value: username);
+      await _secureStorage.write(key: 'last_password', value: password);
+      await _secureStorage.write(key: 'last_server_url', value: serverUrl);
+      if (database != null) {
+        await _secureStorage.write(key: 'last_database', value: database);
+      }
+    } catch (e) {
+      print('Error saving last successful login: $e');
     }
   }
 
@@ -96,6 +155,19 @@ class AuthService with ChangeNotifier {
         database: database,
         rememberMe: true,
       );
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Vérifier si une connexion offline est possible
+  Future<bool> canLoginOffline() async {
+    try {
+      final savedUsername = await _secureStorage.read(key: 'last_username');
+      final savedPassword = await _secureStorage.read(key: 'last_password');
+      final savedServerUrl = await _secureStorage.read(key: 'last_server_url');
+
+      return savedUsername != null && savedPassword != null && savedServerUrl != null;
     } catch (e) {
       return false;
     }
@@ -134,6 +206,7 @@ class AuthService with ChangeNotifier {
       _apiService = null;
       _userName = null;
       _userEmail = null;
+      _isOfflineMode = false;
       notifyListeners();
     } catch (e) {
       print('Logout error: $e');
@@ -145,10 +218,10 @@ class AuthService with ChangeNotifier {
     try {
       await _secureStorage.delete(key: 'username');
       await _secureStorage.delete(key: 'password');
-      // Optionnel : effacer aussi les settings serveur
-      // final prefs = await SharedPreferences.getInstance();
-      // await prefs.remove('server_url');
-      // await prefs.remove('database');
+      await _secureStorage.delete(key: 'last_username');
+      await _secureStorage.delete(key: 'last_password');
+      await _secureStorage.delete(key: 'last_server_url');
+      await _secureStorage.delete(key: 'last_database');
     } catch (e) {
       print('Error clearing credentials: $e');
     }
