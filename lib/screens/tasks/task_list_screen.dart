@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:maintenance_app/screens/dashboard/dashboard_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:maintenance_app/services/auth_service.dart';
+import 'package:maintenance_app/services/offline_manager.dart';
 import 'package:maintenance_app/models/maintenance_task.dart';
 import 'package:maintenance_app/screens/tasks/task_detail_screen.dart';
 import 'package:maintenance_app/config/constants.dart';
+import 'package:maintenance_app/widgets/offline_indicator.dart';
 
 import '../profile_screen.dart';
 
@@ -23,12 +25,30 @@ class _TaskListScreenState extends State<TaskListScreen> {
   int _activeFilter = 0;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  final OfflineManager _offlineManager = OfflineManager();
 
   @override
   void initState() {
     super.initState();
     _activeFilter = widget.status;
+    _initializeOfflineManager();
     _loadTasks();
+  }
+
+  Future<void> _initializeOfflineManager() async {
+    await _offlineManager.init();
+
+    _offlineManager.onSyncCompleted = () {
+      if (mounted) {
+        _loadTasks(); // Recharger après synchronisation
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Synchronisation terminée'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    };
   }
 
   Future<void> _loadTasks() async {
@@ -38,23 +58,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
-      final apiService = authService.apiService;
 
-      if (apiService == null) {
-        throw Exception('Not authenticated');
-      }
-
-      final response = await apiService.getMaintenanceRequests(
-        status: _activeFilter != 0
-            ? _convertStatusToApi(_activeFilter.toString())
-            : null,
+      final tasks = await _offlineManager.getTasks(
+        authService,
+        status: _activeFilter != 0 ? _convertStatusToApi(_activeFilter.toString()) : null,
       );
-
-      if (response == null || response['success'] != true) {
-        throw Exception('Failed to fetch tasks');
-      }
-      final List<dynamic> data = response['data']['requests'] ?? [];
-      final tasks = data.map((json) => MaintenanceTask.fromJson(json)).toList();
 
       setState(() {
         _tasks = tasks.cast<MaintenanceTask>();
@@ -73,227 +81,169 @@ class _TaskListScreenState extends State<TaskListScreen> {
     }
   }
 
-  // Fonction pour convertir les statuts de l'interface en valeurs d'ID pour l'API
-  String? _convertStatusToApi(String status) {
-    switch (status) {
-      case 'pending':
-        return '1'; // ID pour "Nouvelle demande"
-      case 'in_progress':
-        return '2'; // ID pour "En cours"
-      case 'completed':
-        return '3'; // ID pour "Réparé"
-      case 'rebut':
-        return '4'; // ID pour "Rebut"
-      default:
-        return null;
-    }
-  }
-
-  void _setFilter(int filter) {
-    setState(() {
-      _activeFilter = filter;
-    });
-    _loadTasks();
-  }
-
-  void _searchTasks(String query) {
-    setState(() {
-      _searchQuery = query.toLowerCase();
-    });
-  }
-
-  List<MaintenanceTask> get _filteredTasks {
-    List<MaintenanceTask> filtered = _tasks;
-    if (_activeFilter != 0) {
-      filtered = filtered.where((task) => task.status == _activeFilter).toList();
-    }
-    if (_searchQuery.isNotEmpty) {
-      filtered = filtered.where((task) {
-        return task.name.toLowerCase().contains(_searchQuery) ||
-            task.description.toLowerCase().contains(_searchQuery) ||
-            task.location.toLowerCase().contains(_searchQuery);
-      }).toList();
-    }
-    return filtered;
-  }
-
   @override
   Widget build(BuildContext context) {
+    List<MaintenanceTask> filteredTasks = _tasks.where((task) {
+      bool matchesSearch = task.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          task.description.toLowerCase().contains(_searchQuery.toLowerCase());
+
+      if (_activeFilter == 0) return matchesSearch;
+      return matchesSearch && task.status == _activeFilter;
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(_getTitle()),
+        title: Text('Tasks'),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.person),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ProfileScreen()),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
-          // Search and Filter Bar
+          // Indicateur offline
+          OfflineIndicator(),
+
+          // Search Bar
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Row(
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search tasks...',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade100,
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+            ),
+          ),
+
+          // Status Filters
+          Container(
+            height: 50,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(horizontal: 16),
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search tasks',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                    ),
-                    onChanged: _searchTasks,
-                  ),
-                ),
-                SizedBox(width: 8),
-                PopupMenuButton<int>(
-                  icon: Icon(Icons.filter_list),
-                  onSelected: _setFilter,
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 0,
-                      child: Text('All Tasks'),
-                    ),
-                    PopupMenuItem(
-                      value: 1,
-                      child: Text('Pending'),
-                    ),
-                    PopupMenuItem(
-                      value: 2,
-                      child: Text('In Progress'),
-                    ),
-                    PopupMenuItem(
-                      value: 3,
-                      child: Text('Completed'),
-                    ),
-                    PopupMenuItem(
-                      value: 4,
-                      child: Text('Rebut'),
-                    ),
-                  ],
-                ),
+                _buildFilterChip('All', 0),
+                _buildFilterChip('Pending', AppConstants.STATUS_PENDING),
+                _buildFilterChip('In Progress', AppConstants.STATUS_IN_PROGRESS),
+                _buildFilterChip('Completed', AppConstants.STATUS_COMPLETED),
+                _buildFilterChip('Rebuttal', AppConstants.STATUS_CANCELLED),
               ],
             ),
           ),
 
-          // Task List
+          SizedBox(height: 16),
+
+          // Tasks List
           Expanded(
             child: _isLoading
                 ? Center(child: CircularProgressIndicator())
-                : _filteredTasks.isEmpty
+                : filteredTasks.isEmpty
                 ? Center(
-              child: Text(
-                'No tasks found',
-                style: Theme.of(context).textTheme.titleLarge,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.assignment, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No tasks found',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
               ),
             )
                 : RefreshIndicator(
               onRefresh: _loadTasks,
               child: ListView.builder(
-                padding: EdgeInsets.all(8.0),
-                itemCount: _filteredTasks.length,
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                itemCount: filteredTasks.length,
                 itemBuilder: (context, index) {
-                  final task = _filteredTasks[index];
-                  return _buildTaskCard(context, task);
+                  return _buildTaskCard(filteredTasks[index]);
                 },
               ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment),
-            label: 'Tasks',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => DashboardScreen()),
-            );
-          } else if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => ProfileScreen()),
-            );
-          }
+    );
+  }
+
+  Widget _buildFilterChip(String label, int status) {
+    bool isSelected = _activeFilter == status;
+    return Padding(
+      padding: EdgeInsets.only(right: 8),
+      child: FilterChip(
+        label: Text(label),
+        selected: isSelected,
+        onSelected: (selected) {
+          setState(() {
+            _activeFilter = selected ? status : 0;
+          });
+          _loadTasks();
         },
+        selectedColor: Colors.blue.shade100,
+        checkmarkColor: Colors.blue.shade700,
       ),
     );
   }
 
-  String _getTitle() {
-    switch (_activeFilter) {
-      case 1:
-        return 'Pending Tasks';
-      case 2:
-        return 'In Progress Tasks';
-      case 3:
-        return 'Completed Tasks';
-      case 4:
-        return 'Rebut Tasks';
-      default:
-        return 'All Tasks';
-    }
-  }
-
-  Widget _buildTaskCard(BuildContext context, MaintenanceTask task) {
+  Widget _buildTaskCard(MaintenanceTask task) {
     Color statusColor;
-    IconData statusIcon;
+    String statusText;
+
     switch (task.status) {
-      case 1:
+      case AppConstants.STATUS_PENDING:
         statusColor = Colors.orange;
-        statusIcon = Icons.hourglass_empty;
+        statusText = 'Pending';
         break;
-      case 2:
+      case AppConstants.STATUS_IN_PROGRESS:
         statusColor = Colors.blue;
-        statusIcon = Icons.engineering;
+        statusText = 'In Progress';
         break;
-      case 3:
+      case AppConstants.STATUS_COMPLETED:
         statusColor = Colors.green;
-        statusIcon = Icons.check_circle;
+        statusText = 'Completed';
         break;
-      case 4:
-        statusColor = Colors.redAccent;
-        statusIcon = Icons.cancel;
+      case AppConstants.STATUS_CANCELLED:
+        statusColor = Colors.red;
+        statusText = 'Rebuttal';
         break;
       default:
         statusColor = Colors.grey;
-        statusIcon = Icons.help;
-    }
-
-    // Couleur de priorité (urgence)
-    Color priorityColor;
-    switch (task.priority) {
-      case 1:
-        priorityColor = Colors.yellow;
-        break;
-      case 2:
-        priorityColor = Colors.orange;
-        break;
-      case 3:
-        priorityColor = Colors.red;
-        break;
-      default:
-        priorityColor = Colors.green;
+        statusText = 'Unknown';
     }
 
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 8),
+      margin: EdgeInsets.only(bottom: 12),
+      elevation: 2,
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: statusColor.withAlpha(50),
-          child: Icon(statusIcon, color: statusColor),
+        leading: Container(
+          width: 12,
+          height: 40,
+          decoration: BoxDecoration(
+            color: statusColor,
+            borderRadius: BorderRadius.circular(6),
+          ),
         ),
         title: Text(
           task.name,
@@ -302,78 +252,58 @@ class _TaskListScreenState extends State<TaskListScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 4),
-            Text('Location: ${task.location}'),
-            SizedBox(height: 2),
             Text(
-              'Scheduled: ${_formatDate(task.scheduledDate)}',
-              style: TextStyle(fontSize: 12),
+              task.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.access_time, size: 14, color: Colors.grey),
+                SizedBox(width: 4),
+                Text(
+                  '${task.scheduledDate.day}/${task.scheduledDate.month}/${task.scheduledDate.year}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                SizedBox(width: 16),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    statusText,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Chip(
-              label: Text(
-                _statusLabel(task.status),
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                ),
-              ),
-              backgroundColor: statusColor,
-              padding: EdgeInsets.all(0),
-            ),
-            SizedBox(width: 4),
-            Chip(
-              label: Text(
-                'Urgence ${task.priority}',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                ),
-              ),
-              backgroundColor: priorityColor,
-              padding: EdgeInsets.all(0),
-            ),
-          ],
-        ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => TaskDetailScreen(task: task),
-            ),
-          );
-        },
+        trailing: Icon(Icons.chevron_right),
+        onTap: () => _navigateToTaskDetail(task),
       ),
     );
   }
 
-  String _formatDate(DateTime date) {
-    return "${date.day}/${date.month}/${date.year}";
+  void _navigateToTaskDetail(MaintenanceTask task) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TaskDetailScreen(task: task),
+      ),
+    );
+    _loadTasks(); // Refresh après retour
   }
 
-  String _capitalizeFirst(String text) {
-    if (text.isEmpty) return text;
-    return text[0].toUpperCase() + text.substring(1);
+  String _convertStatusToApi(String status) {
+    // Implementation de votre logique de conversion
+    return status;
   }
-
-  String _statusLabel(int status) {
-    switch (status) {
-      case 1:
-        return 'Pending';
-      case 2:
-        return 'In Progress';
-      case 3:
-        return 'Completed';
-      case 4:
-        return 'Rebut';
-      default:
-        return 'Unknown';
-    }
-  }
-
-
 }
