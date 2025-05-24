@@ -64,12 +64,13 @@ class OfflineManager {
 
   // Récupérer les tâches (avec fallback offline)
   Future<List<MaintenanceTask>> getTasks(AuthService authService, {String? status}) async {
-    if (_isOnline && authService.apiService != null) {
+    // Vérifier si on est vraiment en mode online ET pas en mode offline forcé
+    if (_isOnline && authService.apiService != null && !authService.isOfflineMode) {
       try {
-        // Essayer de récupérer depuis l'API
+        // Essayer de récupérer depuis l'API avec timeout
         final response = await authService.apiService!.getMaintenanceRequests(
           status: status,
-        );
+        ).timeout(Duration(seconds: 5)); // Ajouter timeout
 
         if (response != null && response['success'] == true) {
           final List<dynamic> data = response['data']['requests'] ?? [];
@@ -84,8 +85,13 @@ class OfflineManager {
       }
     }
 
-    // Fallback vers le cache local
+    // Fallback vers le cache local (mode offline ou échec API)
     final cachedTasks = await _storage.getCachedTasks();
+
+    // Si pas de cache et première utilisation, retourner données mock/exemple
+    if (cachedTasks.isEmpty) {
+      return await _createSampleTasks();
+    }
 
     // Filtrer par statut si nécessaire
     if (status != null) {
@@ -94,6 +100,45 @@ class OfflineManager {
     }
 
     return cachedTasks;
+  }
+
+  // Ajouter cette méthode dans OfflineManager
+  Future<List<MaintenanceTask>> _createSampleTasks() async {
+    final sampleTasks = [
+      MaintenanceTask(
+        id: 1,
+        name: "Maintenance préventive - Pompe A",
+        description: "Vérification et maintenance de la pompe principale",
+        scheduledDate: DateTime.now().add(Duration(days: 1)),
+        status: 1, // Pending
+        priority: 2, // Medium
+        technicianId: 1,
+        equipmentId: 101,
+        location: "Salle des machines",
+        attachments: [],
+        createdAt: DateTime.now().subtract(Duration(days: 2)),
+        lastUpdated: DateTime.now(),
+      ),
+      MaintenanceTask(
+        id: 2,
+        name: "Réparation - Compresseur B",
+        description: "Réparation du compresseur suite à panne",
+        scheduledDate: DateTime.now(),
+        status: 2, // In Progress
+        priority: 3, // High
+        technicianId: 2,
+        equipmentId: 102,
+        location: "Atelier principal",
+        attachments: [],
+        createdAt: DateTime.now().subtract(Duration(days: 1)),
+        lastUpdated: DateTime.now(),
+      ),
+      // Ajouter d'autres tâches d'exemple...
+    ];
+
+    // Sauvegarder ces tâches en cache pour la prochaine fois
+    await _storage.saveTasks(sampleTasks);
+    return sampleTasks;
   }
 
   // Mettre à jour le statut d'une tâche (avec gestion offline)

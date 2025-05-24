@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:maintenance_app/services/flutter_basic_auth.dart';
 import 'package:maintenance_app/services/offline_manager.dart';
 
+import 'offline_storage_service.dart';
+
 class AuthService with ChangeNotifier {
   // L'instance du service API CMMS utilisant Basic Auth
   CMMSApiService? _apiService;
@@ -103,9 +105,18 @@ class AuthService with ChangeNotifier {
           password: password,
         );
 
+        // Dans _loginOffline (après ligne 108)
         _userName = username;
         _userEmail = null;
         _isOfflineMode = true;
+
+        // Vérifier si des données sont disponibles en cache
+        final offlineStorage = OfflineStorageService();
+        final cachedTasks = await offlineStorage.getCachedTasks();
+        if (cachedTasks.isEmpty) {
+          print('Aucune donnée en cache - première connexion offline');
+          // Optionnel : créer des données d'exemple
+        }
 
         notifyListeners();
         return true;

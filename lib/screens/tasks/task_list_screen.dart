@@ -106,6 +106,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
           ),
         ],
       ),
+
       body: Column(
         children: [
           // Indicateur offline
