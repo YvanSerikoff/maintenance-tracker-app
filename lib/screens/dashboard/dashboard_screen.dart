@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:maintenance_app/config/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:maintenance_app/services/auth_service.dart';
+import 'package:maintenance_app/services/offline_manager.dart';
 import 'package:maintenance_app/models/maintenance_task.dart';
 import 'package:maintenance_app/screens/tasks/task_list_screen.dart';
 import 'package:maintenance_app/screens/profile_screen.dart';
 import 'package:maintenance_app/screens/auth/login_screen.dart';
-import '../../models/user.dart';
+import 'package:maintenance_app/widgets/offline_indicator.dart';
 import '../tasks/task_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -23,54 +24,29 @@ class DashboardScreenState extends State<DashboardScreen> {
   int _inProgressCount = 0;
   int _completedCount = 0;
   int _rebuttalCount = 0;
+  final OfflineManager _offlineManager = OfflineManager();
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _initializeOfflineManager();
     _loadDashboardData();
   }
 
-  Future<void> _loadUserData() async {
-    setState(() {
-      _isLoading = true;
-    });
+  Future<void> _initializeOfflineManager() async {
+    await _offlineManager.init();
 
-    try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final apiService = authService.apiService;
-
-      if (apiService == null) {
-        throw Exception('Not authenticated');
+    _offlineManager.onSyncCompleted = () {
+      if (mounted) {
+        _loadDashboardData(); // Recharger après synchronisation
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Synchronisation terminée'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
-
-      final response = await apiService.getUser();
-      if (response == null || response['success'] != true) {
-        // Affiche le message d'erreur de l'API si disponible
-        final apiMessage = response != null && response['message'] != null
-            ? response['message']
-            : 'Failed to fetch tasks';
-        throw Exception(apiMessage);
-      }
-
-      final json = response['data'];
-      final user = User.fromJson(json);
-
-      setState(() {
-        _checkAndPromptEmail(context, user);
-        _isLoading = false;
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading user: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    };
   }
 
   Future<void> _loadDashboardData() async {
@@ -80,30 +56,17 @@ class DashboardScreenState extends State<DashboardScreen> {
 
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
-      final apiService = authService.apiService;
-      
-      if (apiService == null) {
-        throw Exception('Not authenticated');
-      }
 
-      final response = await apiService.getMaintenanceRequests();
-      if (response == null || response['success'] != true) {
-        // Affiche le message d'erreur de l'API si disponible
-        final apiMessage = response != null && response['message'] != null
-            ? response['message']
-            : 'Failed to fetch tasks';
-        throw Exception(apiMessage);
-      }
-      final List<dynamic> data = response['data']['requests'] ?? [];
-      final tasks = data.map((json) => MaintenanceTask.fromJson(json)).toList();
+      // ✅ Utiliser OfflineManager au lieu d'appeler directement l'API
+      final tasks = await _offlineManager.getTasks(authService);
 
       setState(() {
         _tasks = tasks.cast<MaintenanceTask>();
 
-        _pendingCount = _tasks.where((task) => task.status == 1).length;
-        _inProgressCount = _tasks.where((task) => task.status == 2).length;
-        _completedCount = _tasks.where((task) => task.status == 3).length;
-        _rebuttalCount = _tasks.where((task) => task.status == 4).length;
+        _pendingCount = _tasks.where((task) => task.status == AppConstants.STATUS_PENDING).length;
+        _inProgressCount = _tasks.where((task) => task.status == AppConstants.STATUS_IN_PROGRESS).length;
+        _completedCount = _tasks.where((task) => task.status == AppConstants.STATUS_COMPLETED).length;
+        _rebuttalCount = _tasks.where((task) => task.status == AppConstants.STATUS_CANCELLED).length;
         _isLoading = false;
       });
     } catch (e) {
@@ -120,75 +83,44 @@ class DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _logout() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    await authService.logout();
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => LoginScreen()),
-    );
-  }
-
-  void _checkAndPromptEmail(BuildContext context, User user) {
-    if (user.email == null || user.email.isEmpty) {
-      showDialog(
-        context: context,
-        builder: (context) {
-          final emailController = TextEditingController();
-          return AlertDialog(
-            title: Text('Ajouter un email'),
-            content: TextField(
-              controller: emailController,
-              decoration: InputDecoration(labelText: 'Nouvel email'),
-              keyboardType: TextInputType.emailAddress,
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Déconnexion'),
+          content: Text('Voulez-vous vraiment vous déconnecter ?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Annuler'),
             ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  final authService = Provider.of<AuthService>(context, listen: false);
-                  final apiService = authService.apiService;
-                  if (apiService == null) {
-                    Navigator.of(context).pop();
-                    return;
-                  }else{
-                    apiService.updateUserEmail(emailController.text).then((response) {
-                      if (response != null && response['success'] == true) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Email mis à jour avec succès'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Erreur lors de la mise à jour de l\'email'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    });
-                  }
-                  Navigator.of(context).pop();
-                },
-                child: Text('Valider'),
-              ),
-            ],
-          );
-        },
-      );
-    }else{
-      print('Email already exists: ${user.email}');
-    }
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                final authService = Provider.of<AuthService>(context, listen: false);
+                await authService.logout();
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => LoginScreen()),
+                      (route) => false,
+                );
+              },
+              child: Text('Déconnexion', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   String _statusLabel(int status) {
     switch (status) {
-      case 1:
+      case AppConstants.STATUS_PENDING:
         return 'Pending';
-      case 2:
+      case AppConstants.STATUS_IN_PROGRESS:
         return 'In Progress';
-      case 3:
+      case AppConstants.STATUS_COMPLETED:
         return 'Completed';
-      case 4:
+      case AppConstants.STATUS_CANCELLED:
         return 'Rebuttal';
       default:
         return 'Unknown';
@@ -199,24 +131,46 @@ class DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final userName = authService.userName ?? 'Technician';
+    final isOffline = authService.isOfflineMode;
 
     return Scaffold(
       appBar: AppBar(
         title: Text('Dashboard'),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
             icon: Icon(Icons.refresh),
             onPressed: _loadDashboardData,
+            tooltip: 'Actualiser',
+          ),
+          IconButton(
+            icon: Icon(Icons.person),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ProfileScreen()),
+            ),
+            tooltip: 'Profil',
           ),
           IconButton(
             icon: Icon(Icons.logout),
             onPressed: _logout,
+            tooltip: 'Déconnexion',
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
+
+      body: Column(
+        children: [
+          // Indicateur offline
+          OfflineIndicator(),
+
+          // Contenu principal
+          Expanded(
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
               onRefresh: _loadDashboardData,
               child: SingleChildScrollView(
                 physics: AlwaysScrollableScrollPhysics(),
@@ -225,15 +179,35 @@ class DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Welcome Card
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 30,
-                                backgroundColor: Theme.of(context).primaryColor,
+                      // Welcome Card - Version améliorée
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.blue.shade600, Colors.blue.shade800],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.blue.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: Center(
                                 child: Text(
                                   userName[0].toUpperCase(),
                                   style: TextStyle(
@@ -243,132 +217,206 @@ class DashboardScreenState extends State<DashboardScreen> {
                                   ),
                                 ),
                               ),
-                              SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Welcome back,',
-                                      style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Bonjour,',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.9),
+                                      fontSize: 14,
                                     ),
-                                    Text(
-                                      userName,
-                                      style: Theme.of(context).textTheme.displayMedium,
+                                  ),
+                                  Text(
+                                    userName,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        isOffline ? Icons.cloud_off : Icons.cloud_done,
+                                        color: Colors.white.withOpacity(0.8),
+                                        size: 16,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        isOffline ? 'Mode hors ligne' : 'Connecté',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.8),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                              IconButton(
-                                icon: Icon(Icons.person),
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => ProfileScreen()),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
 
                       SizedBox(height: 24),
-                      
-                      // Task Status Summary
+
+                      // Task Status Summary - Version améliorée
                       Text(
-                        'Task Overview',
-                        style: Theme.of(context).textTheme.displayMedium,
+                        'Aperçu des tâches',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade800,
+                        ),
                       ),
                       SizedBox(height: 16),
 
+                      // Remplacer la GridView par deux rangées
+                      SizedBox(height: 16),
+
+// Première rangée de statistiques
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _buildStatusCard(
-                            context,
-                            'Pending',
-                            _pendingCount,
-                            Colors.orange,
-                            Icons.hourglass_empty,
-                                () => _navigateToTaskList(1),
-                            'Tâches en attente',
+                          Expanded(
+                            child: _buildCompactStatusCard(
+                              'En attente',
+                              _pendingCount,
+                              Colors.orange,
+                              Icons.hourglass_empty,
+                                  () => _navigateToTaskList(AppConstants.STATUS_PENDING),
+                            ),
                           ),
-                          _buildStatusCard(
-                            context,
-                            'In Progress',
-                            _inProgressCount,
-                            Colors.blue,
-                            Icons.engineering,
-                                () => _navigateToTaskList(2),
-                            'Tâches en cours',
-                          ),
-                          _buildStatusCard(
-                            context,
-                            'Completed',
-                            _completedCount,
-                            Colors.green,
-                            Icons.check_circle,
-                                () => _navigateToTaskList(3),
-                            'Tâches terminées',
-                          ),
-                          _buildStatusCard(
-                            context,
-                            'Rebuttal',
-                            _rebuttalCount,
-                            Colors.redAccent,
-                            Icons.error,
-                                () => _navigateToTaskList(4),
-                            'Mis sur le côté',
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: _buildCompactStatusCard(
+                              'En cours',
+                              _inProgressCount,
+                              Colors.blue,
+                              Icons.engineering,
+                                  () => _navigateToTaskList(AppConstants.STATUS_IN_PROGRESS),
+                            ),
                           ),
                         ],
                       ),
-                      
+
+                      SizedBox(height: 12),
+
+// Deuxième rangée de statistiques
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildCompactStatusCard(
+                              'Terminées',
+                              _completedCount,
+                              Colors.green,
+                              Icons.check_circle,
+                                  () => _navigateToTaskList(AppConstants.STATUS_COMPLETED),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: _buildCompactStatusCard(
+                              'Mises de côté',
+                              _rebuttalCount,
+                              Colors.red,
+                              Icons.error_outline,
+                                  () => _navigateToTaskList(AppConstants.STATUS_CANCELLED),
+                            ),
+                          ),
+                        ],
+                      ),
+
                       SizedBox(height: 24),
-                      
-                      // Recent Tasks
+
+                      // Recent Tasks - Version améliorée
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Recent Tasks',
-                            style: Theme.of(context).textTheme.displayMedium,
+                            'Tâches récentes',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade800,
+                            ),
                           ),
-                          TextButton(
+                          TextButton.icon(
                             onPressed: () => _navigateToTaskList(0),
-                            child: Text('View All'),
+                            icon: Icon(Icons.arrow_forward, size: 16),
+                            label: Text('Voir tout'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.blue.shade700,
+                            ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 8),
-                      
-                      // Recent Tasks List
+                      SizedBox(height: 12),
+
+                      // Recent Tasks List - Version améliorée
                       _tasks.isEmpty
-                          ? Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(24.0),
-                                child: Text(
-                                  'No tasks assigned to you.',
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                              ),
-                            )
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              itemCount: _tasks.length > 5 ? 5 : _tasks.length,
-                              itemBuilder: (context, index) {
-                                final task = _tasks[index];
-                                return _buildTaskCard(context, task);
-                              },
+                          ? Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.assignment_outlined,
+                              size: 48,
+                              color: Colors.grey.shade400,
                             ),
+                            SizedBox(height: 12),
+                            Text(
+                              isOffline
+                                  ? 'Aucune tâche en cache'
+                                  : 'Aucune tâche assignée',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            if (isOffline) ...[
+                              SizedBox(height: 4),
+                              Text(
+                                'Connectez-vous en ligne pour synchroniser',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade500,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ],
+                        ),
+                      )
+                          : Column(
+                        children: _tasks.take(5).map((task) => _buildModernTaskCard(task)).toList(),
+                      ),
                     ],
                   ),
                 ),
               ),
             ),
+          ),
+        ],
+      ),
+
+      // Bottom Navigation améliorée
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.blue.shade700,
+        unselectedItemColor: Colors.grey.shade600,
         items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
@@ -376,11 +424,11 @@ class DashboardScreenState extends State<DashboardScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.assignment),
-            label: 'Tasks',
+            label: 'Tâches',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: Icon(Icons.person),
+            label: 'Profil',
           ),
         ],
         onTap: (index) {
@@ -397,159 +445,158 @@ class DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStatusCard(
-      BuildContext context,
-      String title,
-      int count,
-      Color color,
-      IconData icon,
-      VoidCallback onTap,
-      String contextText,
-      ) {
-    return Flexible(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Icon(icon, color: color, size: 32),
-                SizedBox(height: 8),
-                Text(
-                  count.toString(),
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  contextText,
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 12,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTaskCard(BuildContext context, MaintenanceTask task) {
+  Widget _buildModernTaskCard(MaintenanceTask task) {
     Color statusColor;
     IconData statusIcon;
+
     switch (task.status) {
-      case 1:
+      case AppConstants.STATUS_PENDING:
         statusColor = Colors.orange;
         statusIcon = Icons.hourglass_empty;
         break;
-      case 2:
+      case AppConstants.STATUS_IN_PROGRESS:
         statusColor = Colors.blue;
         statusIcon = Icons.engineering;
         break;
-      case 3:
+      case AppConstants.STATUS_COMPLETED:
         statusColor = Colors.green;
         statusIcon = Icons.check_circle;
         break;
-      case 4:
-        statusColor = Colors.redAccent;
-        statusIcon = Icons.cancel;
+      case AppConstants.STATUS_CANCELLED:
+        statusColor = Colors.red;
+        statusIcon = Icons.error_outline;
         break;
       default:
         statusColor = Colors.grey;
         statusIcon = Icons.help;
     }
 
-    // Couleur de priorité (urgence)
-    Color priorityColor;
-    switch (task.priority) {
-      case 1:
-        priorityColor = Colors.yellow;
-        break;
-      case 2:
-        priorityColor = Colors.orange;
-        break;
-      case 3:
-        priorityColor = Colors.red;
-        break;
-      default:
-        priorityColor = Colors.green;
-    }
+    Color priorityColor = _getPriorityColor(task.priority);
 
-    return Card(
-      margin: EdgeInsets.symmetric(vertical: 8),
+    return Container(
+      margin: EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: statusColor.withAlpha(50),
-          child: Icon(statusIcon, color: statusColor),
+        contentPadding: EdgeInsets.all(16),
+        leading: Container(
+          width: 4,
+          height: 40,
+          decoration: BoxDecoration(
+            color: statusColor,
+            borderRadius: BorderRadius.circular(2),
+          ),
         ),
         title: Text(
           task.name,
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 4),
-            Text('Location: ${task.location}'),
-            SizedBox(height: 2),
             Text(
-              'Scheduled: ${_formatDate(task.scheduledDate)}',
-              style: TextStyle(fontSize: 12),
+              task.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.location_on, size: 14, color: Colors.grey),
+                SizedBox(width: 4),
+                Text(
+                  task.location,
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                SizedBox(width: 16),
+                Icon(Icons.access_time, size: 14, color: Colors.grey),
+                SizedBox(width: 4),
+                Text(
+                  _formatDate(task.scheduledDate),
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(statusIcon, size: 12, color: statusColor),
+                      SizedBox(width: 4),
+                      Text(
+                        _statusLabel(task.status),
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 8),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: priorityColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Priorité ${task.priority}',
+                    style: TextStyle(
+                      color: priorityColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Chip(
-              label: Text(
-                _statusLabel(task.status),
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                ),
-              ),
-              backgroundColor: statusColor,
-              padding: EdgeInsets.all(0),
-            ),
-            SizedBox(width: 4),
-            Chip(
-              label: Text(
-                'Urgence ${task.priority}',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                ),
-              ),
-              backgroundColor: priorityColor,
-              padding: EdgeInsets.all(0),
-            ),
-          ],
-        ),
-        onTap: () {
-          _navigateToTaskDetail(task);
-        },
+        trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
+        onTap: () => _navigateToTaskDetail(task),
       ),
     );
   }
 
+  Color _getPriorityColor(int priority) {
+    switch (priority) {
+      case 1:
+        return Colors.green;
+      case 2:
+        return Colors.orange;
+      case 3:
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
   void _navigateToTaskList(int status) async {
-    print('Navigating to task list with status: $status');
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -570,11 +617,74 @@ class DashboardScreenState extends State<DashboardScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return "${date.day}/${date.month}/${date.year}";
+    return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
   }
 
-  String _capitalizeFirst(String text) {
-    if (text.isEmpty) return text;
-    return text[0].toUpperCase() + text.substring(1);
+  Widget _buildCompactStatusCard(
+      String title,
+      int count,
+      Color color,
+      IconData icon,
+      VoidCallback onTap,
+      ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 100,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.1),
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      count.toString(),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

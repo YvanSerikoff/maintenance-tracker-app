@@ -113,9 +113,14 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final statusColor = _getStatusColor(_selectedStatus ?? widget.task.status);
+    final statusIcon = _getStatusIcon(_selectedStatus ?? widget.task.status);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Task Details'),
+        title: Text('Détail de la tâche'),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -123,134 +128,156 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Task Header
-              Card(
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+              // Header visuel
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [statusColor.withOpacity(0.8), statusColor],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: statusColor.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Center(
+                        child: Icon(statusIcon, color: Colors.white, size: 32),
+                      ),
+                    ),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildPriorityIndicator(widget.task.priority),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              widget.task.name,
-                              style: Theme.of(context).textTheme.headlineSmall,
+                          Text(
+                            widget.task.name,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                             ),
+                          ),
+                          SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on, color: Colors.white70, size: 16),
+                              SizedBox(width: 4),
+                              Text(widget.task.location, style: TextStyle(color: Colors.white70, fontSize: 12)),
+                              SizedBox(width: 12),
+                              Icon(Icons.access_time, color: Colors.white70, size: 16),
+                              SizedBox(width: 4),
+                              Text(_formatDate(widget.task.scheduledDate), style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            ],
                           ),
                         ],
                       ),
-                      SizedBox(height: 16),
-                      _buildInfoRow(Icons.calendar_today, 'Scheduled Date:', formatDateFull(widget.task.scheduledDate)),
-                      _buildInfoRow(Icons.location_on, 'Location:', widget.task.location),
-                      _buildInfoRow(Icons.update, 'Last Updated:', formatDateFull(widget.task.lastUpdated)),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-
-              SizedBox(height: 16),
-
-              // Task Status
+              SizedBox(height: 24),
+              // Statut
               Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Status',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
+                      Text('Statut', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.grey.shade800)),
                       SizedBox(height: 16),
                       _isSaving
                           ? Center(child: CircularProgressIndicator())
                           : Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildStatusButton(AppConstants.STATUS_PENDING, 'Pending', Colors.orange),
-                          _buildStatusButton(AppConstants.STATUS_IN_PROGRESS, 'In progress', Colors.blue),
-                          _buildStatusButton(AppConstants.STATUS_COMPLETED, 'Completed', Colors.green),
-                          _buildStatusButton(AppConstants.STATUS_CANCELLED, 'Canceled', Colors.redAccent),
+                          _buildStatusButton(AppConstants.STATUS_PENDING, 'En attente', Colors.orange),
+                          _buildStatusButton(AppConstants.STATUS_IN_PROGRESS, 'En cours', Colors.blue),
+                          _buildStatusButton(AppConstants.STATUS_COMPLETED, 'Terminée', Colors.green),
+                          _buildStatusButton(AppConstants.STATUS_CANCELLED, 'Mise de côté', Colors.redAccent),
                         ],
                       ),
                     ],
                   ),
                 ),
               ),
-
               SizedBox(height: 16),
-
-              // Task Description
+              // Priorité
               Card(
-                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.flag, color: _getPriorityColor(widget.task.priority)),
+                      SizedBox(width: 8),
+                      Text('Priorité : ', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(_getPriorityLabel(widget.task.priority), style: TextStyle(color: _getPriorityColor(widget.task.priority))),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+              // Description
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 2,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Description',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
+                      Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.grey.shade800)),
                       SizedBox(height: 8),
                       widget.task.description.isEmpty
-                          ? Text('No description provided')
+                          ? Text('Aucune description')
                           : Html(data: widget.task.description),
                     ],
                   ),
                 ),
               ),
-
               SizedBox(height: 16),
-
-              // Equipment Information
+              // Equipement
               Card(
-                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 2,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Equipment',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      SizedBox(height: 16),
+                      Text('Équipement', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.grey.shade800)),
+                      SizedBox(height: 8),
                       _equipment == null
-                          ? Text('Equipment information not available')
+                          ? Text('Information non disponible')
                           : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _equipment!.name,
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text('Category: ${_equipment!.category}'),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 16),
-                          Text('Location: ${_equipment!.location}'),
+                          Text(_equipment!.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          SizedBox(height: 4),
+                          Text('Catégorie : ${_equipment!.category}'),
+                          SizedBox(height: 4),
+                          Text('Localisation : ${_equipment!.location}'),
                           if (_equipment!.model3dViewerUrl != null) ...[
-                            SizedBox(height: 16),
+                            SizedBox(height: 12),
                             ElevatedButton.icon(
                               onPressed: () async {
                                 final url = _equipment!.model3dViewerUrl!;
@@ -263,7 +290,8 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
                                 }
                               },
                               icon: Icon(Icons.view_in_ar),
-                              label: Text('View 3D Model'),
+                              label: Text('Voir le modèle 3D'),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700),
                             ),
                           ],
                         ],
@@ -272,26 +300,92 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
                   ),
                 ),
               ),
-
-              SizedBox(height: 16),
-
-              // Add Note or Work Log button
+              SizedBox(height: 24),
+              // Bouton principal
               ElevatedButton.icon(
                 onPressed: () {
-                  // Implement note/work log functionality
                   _showAddNoteDialog();
                 },
                 icon: Icon(Icons.note_add),
-                label: Text('Add Work Log'),
+                label: Text('Ajouter un compte-rendu'),
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 50),
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ),
+              SizedBox(height: 16),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Color _getStatusColor(int status) {
+    switch (status) {
+      case AppConstants.STATUS_PENDING:
+        return Colors.orange;
+      case AppConstants.STATUS_IN_PROGRESS:
+        return Colors.blue;
+      case AppConstants.STATUS_COMPLETED:
+        return Colors.green;
+      case AppConstants.STATUS_CANCELLED:
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(int status) {
+    switch (status) {
+      case AppConstants.STATUS_PENDING:
+        return Icons.hourglass_empty;
+      case AppConstants.STATUS_IN_PROGRESS:
+        return Icons.engineering;
+      case AppConstants.STATUS_COMPLETED:
+        return Icons.check_circle;
+      case AppConstants.STATUS_CANCELLED:
+        return Icons.error_outline;
+      default:
+        return Icons.help;
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
+  }
+
+  String _getPriorityLabel(int priority) {
+    switch (priority) {
+      case 0:
+        return 'Faible';
+      case 1:
+        return 'Normale';
+      case 2:
+        return 'Haute';
+      case 3:
+        return 'Urgente';
+      default:
+        return 'Inconnue';
+    }
+  }
+
+  Color _getPriorityColor(int priority) {
+    switch (priority) {
+      case 0:
+        return Colors.green;
+      case 1:
+        return Colors.blue;
+      case 2:
+        return Colors.orange;
+      case 3:
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value) {
@@ -449,3 +543,4 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
     );
   }
 }
+
