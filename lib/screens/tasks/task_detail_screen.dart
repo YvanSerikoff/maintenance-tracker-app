@@ -201,8 +201,8 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Statut
-                      Expanded(
-                        flex: isWide ? 3 : 0,
+                      Container(
+                        width: isWide ? null : double.infinity,
                         child: Card(
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 2,
@@ -238,8 +238,8 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
                       ),
                       if (isWide) SizedBox(width: 10),
                       // Priorité
-                      Flexible(
-                        flex: 2,
+                      Container(
+                        width: isWide ? 200 : double.infinity,
                         child: Card(
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 2,

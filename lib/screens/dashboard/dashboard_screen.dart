@@ -133,10 +133,19 @@ class DashboardScreenState extends State<DashboardScreen> {
     final authService = Provider.of<AuthService>(context);
     final userName = authService.userName ?? 'Technician';
     final isOffline = authService.isOfflineMode;
-
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 400;
+    final isTablet = screenWidth > 700;
+    final horizontalPadding = isSmallScreen ? 8.0 : (isTablet ? 32.0 : 16.0);
+    final cardPadding = isSmallScreen ? 10.0 : 16.0;
+    final headerFontSize = isSmallScreen ? 16.0 : (isTablet ? 26.0 : 20.0);
+    final statFontSize = isSmallScreen ? 12.0 : 16.0;
+    final statCountFontSize = isSmallScreen ? 16.0 : 20.0;
+    final statCardHeight = isSmallScreen ? 70.0 : 100.0;
+    final recentTaskTitleFontSize = isSmallScreen ? 16.0 : 22.0;
     return Scaffold(
       appBar: AppBar(
-        title: Text('Dashboard'),
+        title: Text('Dashboard', style: TextStyle(fontSize: isSmallScreen ? 16 : 20)),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -175,21 +184,21 @@ class DashboardScreenState extends State<DashboardScreen> {
               child: SingleChildScrollView(
                 physics: AlwaysScrollableScrollPhysics(),
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(horizontalPadding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Welcome Card - Version améliorée
                       Container(
                         width: double.infinity,
-                        padding: EdgeInsets.all(20),
+                        padding: EdgeInsets.all(isSmallScreen ? 12 : 20),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [Colors.blue.shade600, Colors.blue.shade800],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(isSmallScreen ? 10 : 16),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.blue.withOpacity(0.3),
@@ -201,24 +210,24 @@ class DashboardScreenState extends State<DashboardScreen> {
                         child: Row(
                           children: [
                             Container(
-                              width: 60,
-                              height: 60,
+                              width: isSmallScreen ? 40 : 60,
+                              height: isSmallScreen ? 40 : 60,
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(30),
+                                borderRadius: BorderRadius.circular(isSmallScreen ? 20 : 30),
                               ),
                               child: Center(
                                 child: Text(
                                   userName[0].toUpperCase(),
                                   style: TextStyle(
-                                    fontSize: 24,
+                                    fontSize: isSmallScreen ? 18 : 24,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
                                 ),
                               ),
                             ),
-                            SizedBox(width: 16),
+                            SizedBox(width: isSmallScreen ? 8 : 16),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,14 +236,14 @@ class DashboardScreenState extends State<DashboardScreen> {
                                     'Hello,',
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.9),
-                                      fontSize: 14,
+                                      fontSize: isSmallScreen ? 10 : 14,
                                     ),
                                   ),
                                   Text(
                                     userName,
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 20,
+                                      fontSize: headerFontSize,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -244,14 +253,14 @@ class DashboardScreenState extends State<DashboardScreen> {
                                       Icon(
                                         isOffline ? Icons.cloud_off : Icons.cloud_done,
                                         color: Colors.white.withOpacity(0.8),
-                                        size: 16,
+                                        size: isSmallScreen ? 12 : 16,
                                       ),
                                       SizedBox(width: 4),
                                       Text(
                                         isOffline ? 'Offline mode' : 'Connected',
                                         style: TextStyle(
                                           color: Colors.white.withOpacity(0.8),
-                                          fontSize: 12,
+                                          fontSize: isSmallScreen ? 10 : 12,
                                         ),
                                       ),
                                     ],
@@ -263,23 +272,20 @@ class DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
 
-                      SizedBox(height: 24),
+                      SizedBox(height: isSmallScreen ? 16 : 24),
 
                       // Task Status Summary - Version améliorée
                       Text(
                         'Tasks Summary',
                         style: TextStyle(
-                          fontSize: 22,
+                          fontSize: isSmallScreen ? 16 : 22,
                           fontWeight: FontWeight.bold,
                           color: Colors.grey.shade800,
                         ),
                       ),
-                      SizedBox(height: 16),
+                      SizedBox(height: isSmallScreen ? 8 : 16),
 
-                      // Remplacer la GridView par deux rangées
-                      SizedBox(height: 16),
-
-// Première rangée de statistiques
+                      // Première rangée de statistiques
                       Row(
                         children: [
                           Expanded(
@@ -289,6 +295,9 @@ class DashboardScreenState extends State<DashboardScreen> {
                               Colors.orange,
                               Icons.hourglass_empty,
                                   () => _navigateToTaskList(AppConstants.STATUS_PENDING),
+                              statCardHeight: statCardHeight,
+                              statFontSize: statFontSize,
+                              statCountFontSize: statCountFontSize,
                             ),
                           ),
                           SizedBox(width: 12),
@@ -299,14 +308,17 @@ class DashboardScreenState extends State<DashboardScreen> {
                               Colors.blue,
                               Icons.engineering,
                                   () => _navigateToTaskList(AppConstants.STATUS_IN_PROGRESS),
+                              statCardHeight: statCardHeight,
+                              statFontSize: statFontSize,
+                              statCountFontSize: statCountFontSize,
                             ),
                           ),
                         ],
                       ),
 
-                      SizedBox(height: 12),
+                      SizedBox(height: isSmallScreen ? 6 : 12),
 
-// Deuxième rangée de statistiques
+                      // Deuxième rangée de statistiques
                       Row(
                         children: [
                           Expanded(
@@ -316,6 +328,9 @@ class DashboardScreenState extends State<DashboardScreen> {
                               Colors.green,
                               Icons.check_circle,
                                   () => _navigateToTaskList(AppConstants.STATUS_COMPLETED),
+                              statCardHeight: statCardHeight,
+                              statFontSize: statFontSize,
+                              statCountFontSize: statCountFontSize,
                             ),
                           ),
                           SizedBox(width: 12),
@@ -326,12 +341,15 @@ class DashboardScreenState extends State<DashboardScreen> {
                               Colors.red,
                               Icons.error_outline,
                                   () => _navigateToTaskList(AppConstants.STATUS_CANCELLED),
+                              statCardHeight: statCardHeight,
+                              statFontSize: statFontSize,
+                              statCountFontSize: statCountFontSize,
                             ),
                           ),
                         ],
                       ),
 
-                      SizedBox(height: 24),
+                      SizedBox(height: isSmallScreen ? 12 : 24),
 
                       // Recent Tasks - Version améliorée
                       Row(
@@ -340,38 +358,38 @@ class DashboardScreenState extends State<DashboardScreen> {
                           Text(
                             'Recent Tasks',
                             style: TextStyle(
-                              fontSize: 22,
+                              fontSize: recentTaskTitleFontSize,
                               fontWeight: FontWeight.bold,
                               color: Colors.grey.shade800,
                             ),
                           ),
                           TextButton.icon(
                             onPressed: () => _navigateToTaskList(0),
-                            icon: Icon(Icons.arrow_forward, size: 16),
-                            label: Text('See All'),
+                            icon: Icon(Icons.arrow_forward, size: isSmallScreen ? 12 : 16),
+                            label: Text('See All', style: TextStyle(fontSize: isSmallScreen ? 12 : 14)),
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.blue.shade700,
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 12),
+                      SizedBox(height: isSmallScreen ? 6 : 12),
 
                       // Recent Tasks List - Version améliorée
                       _tasks.isEmpty
                           ? Container(
                         width: double.infinity,
-                        padding: EdgeInsets.all(32),
+                        padding: EdgeInsets.all(isSmallScreen ? 16 : 32),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(isSmallScreen ? 10 : 16),
                           border: Border.all(color: Colors.grey.shade200),
                         ),
                         child: Column(
                           children: [
                             Icon(
                               Icons.assignment_outlined,
-                              size: 48,
+                              size: isSmallScreen ? 32 : 48,
                               color: Colors.grey.shade400,
                             ),
                             SizedBox(height: 12),
@@ -380,7 +398,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                                   ? 'No tasks available in offline mode'
                                   : 'No tasks assigned yet',
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: isSmallScreen ? 12 : 16,
                                 color: Colors.grey.shade600,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -390,7 +408,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                               Text(
                                 'Connect to the internet to sync tasks.',
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: isSmallScreen ? 10 : 12,
                                   color: Colors.grey.shade500,
                                 ),
                                 textAlign: TextAlign.center,
@@ -594,12 +612,15 @@ class DashboardScreenState extends State<DashboardScreen> {
       int count,
       Color color,
       IconData icon,
-      VoidCallback onTap,
-      ) {
+      VoidCallback onTap, {
+      double statCardHeight = 100,
+      double statFontSize = 12,
+      double statCountFontSize = 20,
+    }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 100,
+        height: statCardHeight,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -635,14 +656,14 @@ class DashboardScreenState extends State<DashboardScreen> {
                       style: TextStyle(
                         color: Colors.grey.shade700,
                         fontWeight: FontWeight.w500,
-                        fontSize: 12,
+                        fontSize: statFontSize,
                       ),
                     ),
                     SizedBox(height: 2),
                     Text(
                       count.toString(),
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: statCountFontSize,
                         fontWeight: FontWeight.bold,
                         color: color,
                       ),

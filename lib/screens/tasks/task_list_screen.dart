@@ -84,6 +84,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 400;
+    final isTablet = screenWidth > 700;
+    final horizontalPadding = isSmallScreen ? 8.0 : (isTablet ? 32.0 : 16.0);
+    final searchFontSize = isSmallScreen ? 12.0 : 16.0;
+    final filterChipFontSize = isSmallScreen ? 12.0 : 14.0;
+    final cardPadding = isSmallScreen ? 10.0 : 16.0;
     List<MaintenanceTask> filteredTasks = _tasks.where((task) {
       bool matchesSearch = task.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           task.description.toLowerCase().contains(_searchQuery.toLowerCase());
@@ -94,7 +101,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Tasks'),
+        title: Text('Tasks', style: TextStyle(fontSize: isSmallScreen ? 16 : 20)),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
         actions: [
@@ -114,7 +121,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
           // Search Bar
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(horizontalPadding),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
@@ -126,6 +133,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                 filled: true,
                 fillColor: Colors.grey.shade100,
               ),
+              style: TextStyle(fontSize: searchFontSize),
               onChanged: (value) {
                 setState(() {
                   _searchQuery = value;
@@ -136,21 +144,21 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
           // Status Filters
           Container(
-            height: 50,
+            height: isSmallScreen ? 40 : 50,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               children: [
-                _buildFilterChip('All', 0),
-                _buildFilterChip('Pending', AppConstants.STATUS_PENDING),
-                _buildFilterChip('In Progress', AppConstants.STATUS_IN_PROGRESS),
-                _buildFilterChip('Completed', AppConstants.STATUS_COMPLETED),
-                _buildFilterChip('Rebuttal', AppConstants.STATUS_CANCELLED),
+                _buildFilterChip('All', 0, filterChipFontSize),
+                _buildFilterChip('Pending', AppConstants.STATUS_PENDING, filterChipFontSize),
+                _buildFilterChip('In Progress', AppConstants.STATUS_IN_PROGRESS, filterChipFontSize),
+                _buildFilterChip('Completed', AppConstants.STATUS_COMPLETED, filterChipFontSize),
+                _buildFilterChip('Rebuttal', AppConstants.STATUS_CANCELLED, filterChipFontSize),
               ],
             ),
           ),
 
-          SizedBox(height: 16),
+          SizedBox(height: isSmallScreen ? 8 : 16),
 
           // Tasks List
           Expanded(
@@ -161,12 +169,12 @@ class _TaskListScreenState extends State<TaskListScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.assignment, size: 64, color: Colors.grey),
+                  Icon(Icons.assignment, size: isSmallScreen ? 40 : 64, color: Colors.grey),
                   SizedBox(height: 16),
                   Text(
                     'No tasks found',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: isSmallScreen ? 14 : 18,
                       color: Colors.grey.shade600,
                     ),
                   ),
@@ -176,7 +184,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                 : RefreshIndicator(
               onRefresh: _loadTasks,
               child: ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                 itemCount: filteredTasks.length,
                 itemBuilder: (context, index) {
                   return TaskCard(task: filteredTasks[index], onTap: () => _navigateToTaskDetail(filteredTasks[index]));
@@ -190,12 +198,12 @@ class _TaskListScreenState extends State<TaskListScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, int status) {
+  Widget _buildFilterChip(String label, int status, double fontSize) {
     bool isSelected = _activeFilter == status;
     return Padding(
       padding: EdgeInsets.only(right: 8),
       child: FilterChip(
-        label: Text(label),
+        label: Text(label, style: TextStyle(fontSize: fontSize)),
         selected: isSelected,
         onSelected: (selected) {
           setState(() {

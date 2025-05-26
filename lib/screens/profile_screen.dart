@@ -154,32 +154,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 400;
+    final isTablet = screenWidth > 700;
+    final horizontalPadding = isSmallScreen ? 8.0 : (isTablet ? 32.0 : 16.0);
+    final cardPadding = isSmallScreen ? 10.0 : 20.0;
+    final avatarRadius = isSmallScreen ? 30.0 : 40.0;
+    final nameFontSize = isSmallScreen ? 16.0 : 20.0;
+    final emailFontSize = isSmallScreen ? 12.0 : 14.0;
+    final sectionTitleFontSize = isSmallScreen ? 15.0 : 18.0;
+    final buttonFontSize = isSmallScreen ? 14.0 : 16.0;
+    final buttonHeight = isSmallScreen ? 40.0 : 50.0;
+    final copyrightFontSize = isSmallScreen ? 10.0 : 12.0;
+    final updateFontSize = isSmallScreen ? 10.0 : 12.0;
     final authService = Provider.of<AuthService>(context);
     final userName = authService.userName ?? 'User';
     final userEmail = authService.userEmail ?? 'No email provided';
-    
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profile'),
+        title: Text('Profile', style: TextStyle(fontSize: isSmallScreen ? 16 : 20)),
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(horizontalPadding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Carte profil modernisée
                   Container(
                     width: double.infinity,
-                    padding: EdgeInsets.all(20),
+                    padding: EdgeInsets.all(cardPadding),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [Colors.blue.shade600, Colors.blue.shade800],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(isSmallScreen ? 10 : 16),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.blue.withOpacity(0.2),
@@ -191,12 +203,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       children: [
                         CircleAvatar(
-                          radius: 40,
+                          radius: avatarRadius,
                           backgroundColor: Colors.white.withOpacity(0.2),
                           child: Text(
                             userName[0].toUpperCase(),
                             style: TextStyle(
-                              fontSize: 32,
+                              fontSize: avatarRadius,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -207,7 +219,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           userName,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 20,
+                            fontSize: nameFontSize,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -216,7 +228,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           userEmail,
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.8),
-                            fontSize: 14,
+                            fontSize: emailFontSize,
                           ),
                         ),
                         SizedBox(height: 8),
@@ -238,12 +250,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 24),
+                  SizedBox(height: isSmallScreen ? 16 : 24),
                   // Section Paramètres
-                  Text('Parameters', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.grey.shade800)),
+                  Text('Parameters', style: TextStyle(fontWeight: FontWeight.bold, fontSize: sectionTitleFontSize, color: Colors.grey.shade800)),
                   SizedBox(height: 8),
                   Card(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isSmallScreen ? 10 : 16)),
                     elevation: 2,
                     child: Column(
                       children: [
@@ -294,12 +306,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 24),
+                  SizedBox(height: isSmallScreen ? 16 : 24),
                   // Section Compte
-                  Text('Account', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.grey.shade800)),
+                  Text('Account', style: TextStyle(fontWeight: FontWeight.bold, fontSize: sectionTitleFontSize, color: Colors.grey.shade800)),
                   SizedBox(height: 8),
                   Card(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isSmallScreen ? 10 : 16)),
                     elevation: 2,
                     child: Column(
                       children: [
@@ -325,12 +337,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 24),
+                  SizedBox(height: isSmallScreen ? 16 : 24),
                   // Section Support
-                  Text('Support', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.grey.shade800)),
+                  Text('Support', style: TextStyle(fontWeight: FontWeight.bold, fontSize: sectionTitleFontSize, color: Colors.grey.shade800)),
                   SizedBox(height: 8),
                   Card(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isSmallScreen ? 10 : 16)),
                     elevation: 2,
                     child: Column(
                       children: [
@@ -371,27 +383,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 24),
+                  SizedBox(height: isSmallScreen ? 16 : 24),
                   // Bouton de déconnexion
                   ElevatedButton.icon(
                     onPressed: _logout,
                     icon: Icon(Icons.logout),
-                    label: Text('Disconnect'),
+                    label: Text('Disconnect', style: TextStyle(fontSize: buttonFontSize)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
-                      minimumSize: Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      minimumSize: Size(double.infinity, buttonHeight),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isSmallScreen ? 8 : 12)),
+                      textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: buttonFontSize),
                     ),
                   ),
-                  SizedBox(height: 24),
+                  SizedBox(height: isSmallScreen ? 16 : 24),
                   Center(
                     child: Text(
                       '© ${DateTime.now().year} Maintenance Tracker App',
                       style: TextStyle(
                         color: Colors.grey[600],
-                        fontSize: 12,
+                        fontSize: copyrightFontSize,
                       ),
                     ),
                   ),
@@ -401,7 +413,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'Last updated : 2025-05-18',
                       style: TextStyle(
                         color: Colors.grey[500],
-                        fontSize: 12,
+                        fontSize: updateFontSize,
                       ),
                     ),
                   ),
