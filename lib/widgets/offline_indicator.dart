@@ -16,10 +16,19 @@ class _OfflineIndicatorState extends State<OfflineIndicator> {
     _isOnline = _offlineManager.isOnline;
 
     _offlineManager.onConnectivityChanged = (isOnline) {
-      setState(() {
-        _isOnline = isOnline;
-      });
+      // CORRECTION : Vérifier si le widget est encore monté avant setState
+      if (mounted) {
+        setState(() {
+          _isOnline = isOnline;
+        });
+      }
     };
+  }
+
+  @override
+  void dispose() {
+    _offlineManager.onConnectivityChanged = null;
+    super.dispose();
   }
 
   @override
