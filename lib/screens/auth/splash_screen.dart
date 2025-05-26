@@ -45,41 +45,76 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Logo
-            Image.asset(
-              'assets/images/logo.png',
-              height: 120,
-            ),
-            SizedBox(height: 24),
-            
-            // App name
-            Text(
-              'Maintenance Tracker',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Theme.of(context).primaryColor,
-                fontWeight: FontWeight.bold,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blue.shade600, Colors.blue.shade800],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Logo modernisé
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.1),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                padding: EdgeInsets.all(16),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  height: 90,
+                ),
               ),
-            ),
-            SizedBox(height: 48),
-            
-            // Loading indicator
-            CircularProgressIndicator(),
-            SizedBox(height: 24),
-            
-            Text(
-              'Loading...',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
+              SizedBox(height: 32),
+              // Titre
+              Text(
+                'Maintenance Tracker',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
+                  letterSpacing: 1.2,
+                ),
               ),
-            ),
-          ],
+              SizedBox(height: 48),
+              // Indicateur de chargement modernisé
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade700),
+                ),
+              ),
+              SizedBox(height: 24),
+              Text(
+                'Loading...',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white.withOpacity(0.9),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+

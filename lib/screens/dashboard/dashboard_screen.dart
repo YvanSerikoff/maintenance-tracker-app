@@ -9,6 +9,7 @@ import 'package:maintenance_app/screens/profile_screen.dart';
 import 'package:maintenance_app/screens/auth/login_screen.dart';
 import 'package:maintenance_app/widgets/offline_indicator.dart';
 import '../tasks/task_detail_screen.dart';
+import 'package:maintenance_app/widgets/task_card.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -40,7 +41,7 @@ class DashboardScreenState extends State<DashboardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Synchronisation terminée'),
+            content: Text('Synchronisation finished'),
             backgroundColor: Colors.green,
           ),
         );
@@ -86,12 +87,12 @@ class DashboardScreenState extends State<DashboardScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Déconnexion'),
-          content: Text('Voulez-vous vraiment vous déconnecter ?'),
+          title: Text('Disconnect'),
+          content: Text('Do you really want to disconnect?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Annuler'),
+              child: Text('Cancel'),
             ),
             TextButton(
               onPressed: () async {
@@ -103,7 +104,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                       (route) => false,
                 );
               },
-              child: Text('Déconnexion', style: TextStyle(color: Colors.red)),
+              child: Text('Disconnect', style: TextStyle(color: Colors.red)),
             ),
           ],
         );
@@ -150,12 +151,12 @@ class DashboardScreenState extends State<DashboardScreen> {
               context,
               MaterialPageRoute(builder: (_) => ProfileScreen()),
             ),
-            tooltip: 'Profil',
+            tooltip: 'Profile',
           ),
           IconButton(
             icon: Icon(Icons.logout),
             onPressed: _logout,
-            tooltip: 'Déconnexion',
+            tooltip: 'Disconnect',
           ),
         ],
       ),
@@ -223,7 +224,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Bonjour,',
+                                    'Hello,',
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.9),
                                       fontSize: 14,
@@ -247,7 +248,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                                       ),
                                       SizedBox(width: 4),
                                       Text(
-                                        isOffline ? 'Mode hors ligne' : 'Connecté',
+                                        isOffline ? 'Offline mode' : 'Connected',
                                         style: TextStyle(
                                           color: Colors.white.withOpacity(0.8),
                                           fontSize: 12,
@@ -266,7 +267,7 @@ class DashboardScreenState extends State<DashboardScreen> {
 
                       // Task Status Summary - Version améliorée
                       Text(
-                        'Aperçu des tâches',
+                        'Tasks Summary',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -283,7 +284,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           Expanded(
                             child: _buildCompactStatusCard(
-                              'En attente',
+                              'Pending',
                               _pendingCount,
                               Colors.orange,
                               Icons.hourglass_empty,
@@ -293,7 +294,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                           SizedBox(width: 12),
                           Expanded(
                             child: _buildCompactStatusCard(
-                              'En cours',
+                              'In Progress',
                               _inProgressCount,
                               Colors.blue,
                               Icons.engineering,
@@ -310,7 +311,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           Expanded(
                             child: _buildCompactStatusCard(
-                              'Terminées',
+                              'Completed',
                               _completedCount,
                               Colors.green,
                               Icons.check_circle,
@@ -320,7 +321,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                           SizedBox(width: 12),
                           Expanded(
                             child: _buildCompactStatusCard(
-                              'Mises de côté',
+                              'Rebuttal',
                               _rebuttalCount,
                               Colors.red,
                               Icons.error_outline,
@@ -337,7 +338,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Tâches récentes',
+                            'Recent Tasks',
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -347,7 +348,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                           TextButton.icon(
                             onPressed: () => _navigateToTaskList(0),
                             icon: Icon(Icons.arrow_forward, size: 16),
-                            label: Text('Voir tout'),
+                            label: Text('See All'),
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.blue.shade700,
                             ),
@@ -376,8 +377,8 @@ class DashboardScreenState extends State<DashboardScreen> {
                             SizedBox(height: 12),
                             Text(
                               isOffline
-                                  ? 'Aucune tâche en cache'
-                                  : 'Aucune tâche assignée',
+                                  ? 'No tasks available in offline mode'
+                                  : 'No tasks assigned yet',
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.grey.shade600,
@@ -387,7 +388,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                             if (isOffline) ...[
                               SizedBox(height: 4),
                               Text(
-                                'Connectez-vous en ligne pour synchroniser',
+                                'Connect to the internet to sync tasks.',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey.shade500,
@@ -399,7 +400,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                         ),
                       )
                           : Column(
-                        children: _tasks.take(5).map((task) => _buildModernTaskCard(task)).toList(),
+                        children: _tasks.take(5).map((task) => TaskCard(task: task, onTap: () => _navigateToTaskDetail(task))).toList(),
                       ),
                     ],
                   ),
@@ -423,11 +424,11 @@ class DashboardScreenState extends State<DashboardScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.assignment),
-            label: 'Tâches',
+            label: 'Tasks',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
-            label: 'Profil',
+            label: 'Profile',
           ),
         ],
         onTap: (index) {
@@ -564,7 +565,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Priorité ${task.priority}',
+                    'Priority ${task.priority}',
                     style: TextStyle(
                       color: priorityColor,
                       fontSize: 10,
@@ -687,3 +688,4 @@ class DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
+

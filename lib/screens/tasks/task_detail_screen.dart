@@ -529,14 +529,14 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
             children: [
               Text('URL: $url'),
               SizedBox(height: 16),
-              Text('Note: Pour visualiser le modèle 3D, ouvrez cette URL dans un navigateur')
+              Text('Note: To view the 3D model, please open the link in a web browser.'),
             ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Fermer'),
+            child: Text('Close'),
           ),
         ],
       ),

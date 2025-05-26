@@ -226,7 +226,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            'Technicien',
+                            'Technician',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -239,7 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   SizedBox(height: 24),
                   // Section Paramètres
-                  Text('Paramètres', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.grey.shade800)),
+                  Text('Parameters', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.grey.shade800)),
                   SizedBox(height: 8),
                   Card(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -247,8 +247,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       children: [
                         SwitchListTile(
-                          title: Text('Mode sombre'),
-                          subtitle: Text('Activer le thème sombre'),
+                          title: Text('Dark theme'),
+                          subtitle: Text('Activate dark mode'),
                           value: _isDarkMode,
                           secondary: Icon(Icons.brightness_4),
                           onChanged: (value) {
@@ -258,7 +258,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             _saveSettings();
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Redémarrez l\'application pour appliquer le thème'),
+                                content: Text('Reboot the app to apply changes'),
                               ),
                             );
                           },
@@ -266,7 +266,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Divider(),
                         SwitchListTile(
                           title: Text('Notifications'),
-                          subtitle: Text('Activer les notifications push'),
+                          subtitle: Text('Activate push notifications'),
                           value: _isNotificationsEnabled,
                           secondary: Icon(Icons.notifications),
                           onChanged: (value) {
@@ -279,13 +279,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Divider(),
                         ListTile(
                           leading: Icon(Icons.language),
-                          title: Text('Langue'),
-                          subtitle: Text('Français'),
+                          title: Text('Language'),
+                          subtitle: Text('English (en)'),
                           trailing: Icon(Icons.arrow_forward_ios, size: 16),
                           onTap: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Paramètre de langue à venir !'),
+                                content: Text('Language parameters are not yet implemented'),
                               ),
                             );
                           },
@@ -295,7 +295,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   SizedBox(height: 24),
                   // Section Compte
-                  Text('Compte', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.grey.shade800)),
+                  Text('Account', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.grey.shade800)),
                   SizedBox(height: 8),
                   Card(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -304,12 +304,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         ListTile(
                           leading: Icon(Icons.security),
-                          title: Text('Changer le mot de passe'),
+                          title: Text('Change Password'),
                           trailing: Icon(Icons.arrow_forward_ios, size: 16),
                           onTap: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Changement de mot de passe à venir !'),
+                                content: Text('Changing password is not yet implemented'),
                               ),
                             );
                           },
@@ -317,7 +317,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Divider(),
                         ListTile(
                           leading: Icon(Icons.delete_forever),
-                          title: Text('Effacer les identifiants stockés'),
+                          title: Text('Erase Stored Credentials'),
                           trailing: Icon(Icons.arrow_forward_ios, size: 16),
                           onTap: _clearStoredCredentials,
                         ),
@@ -342,14 +342,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Divider(),
                         ListTile(
                           leading: Icon(Icons.email),
-                          title: Text('Contacter le support'),
+                          title: Text('Contact Support'),
                           trailing: Icon(Icons.arrow_forward_ios, size: 16),
                           onTap: _sendSupportEmail,
                         ),
                         Divider(),
                         ListTile(
                           leading: Icon(Icons.info),
-                          title: Text('À propos'),
+                          title: Text('About'),
                           subtitle: Text('Version $_appVersion (Build $_buildNumber)'),
                           trailing: Icon(Icons.arrow_forward_ios, size: 16),
                           onTap: () {
@@ -360,7 +360,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               applicationIcon: Image.asset('assets/images/logo.png', height: 50),
                               children: [
                                 SizedBox(height: 16),
-                                Text('Maintenance Tracker permet aux techniciens de gérer et compléter les tâches de maintenance efficacement.'),
+                                Text('Maintenance Tracker allows you to manage your maintenance tasks efficiently.'),
                                 SizedBox(height: 16),
                                 Text('© ${DateTime.now().year} Your Company Name'),
                               ],
@@ -375,7 +375,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ElevatedButton.icon(
                     onPressed: _logout,
                     icon: Icon(Icons.logout),
-                    label: Text('Déconnexion'),
+                    label: Text('Disconnect'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
@@ -397,7 +397,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   SizedBox(height: 8),
                   Center(
                     child: Text(
-                      'Dernière mise à jour : 2025-05-18',
+                      'Last updated : 2025-05-18',
                       style: TextStyle(
                         color: Colors.grey[500],
                         fontSize: 12,

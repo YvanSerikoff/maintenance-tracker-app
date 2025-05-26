@@ -57,10 +57,12 @@ class AuthService with ChangeNotifier {
       );
 
       final dashboard = await apiService.getDashboard();
+      final user = await apiService.getUser();
       if (dashboard != null && dashboard['success'] == true) {
         _apiService = apiService;
         _userName = username;
-        _userEmail = null;
+        _userEmail = user?['data']['user']['email'] ?? '';
+        print('Login successful: $_userEmail');
         _isOfflineMode = false;
 
         if (rememberMe) {

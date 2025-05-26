@@ -3,6 +3,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:maintenance_app/models/maintenance_task.dart';
 import 'package:maintenance_app/services/offline_storage_service.dart';
 import 'package:maintenance_app/services/auth_service.dart';
+import 'package:flutter/foundation.dart'; // Pour kIsWeb
 
 class OfflineManager {
   static final OfflineManager _instance = OfflineManager._internal();
@@ -10,7 +11,7 @@ class OfflineManager {
   OfflineManager._internal();
 
   final OfflineStorageService _storage = OfflineStorageService();
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  StreamSubscription? _connectivitySubscription; // Complètement générique
   bool _isOnline = true;
   Timer? _syncTimer;
 
@@ -38,28 +39,225 @@ class OfflineManager {
   }
 
   Future<void> _checkInitialConnectivity() async {
-    final connectivityResults = await Connectivity().checkConnectivity();
-    _updateConnectivityStatus(connectivityResults);
+    try {
+      if (kIsWeb) {
+        // Sur le web, utiliser une approche différente
+        _handleWebConnectivity();
+      } else {
+        final connectivityResults = await Connectivity().checkConnectivity();
+        final convertedResults = _convertToConnectivityResultList(connectivityResults);
+        _updateConnectivityStatus(convertedResults);
+      }
+    } catch (e) {
+      print('Error checking initial connectivity: $e');
+      // Fallback: supposer qu'on est online sur le web
+      _updateConnectivityStatus([ConnectivityResult.wifi]);
+    }
   }
 
   void _startConnectivityMonitoring() {
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
-      _updateConnectivityStatus(results);
+    try {
+      if (kIsWeb) {
+        // Approche spécifique pour le web (Chrome inclus)
+        _startWebConnectivityMonitoring();
+      } else {
+        // Approche mobile standard
+        _startMobileConnectivityMonitoring();
+      }
+    } catch (e) {
+      print('Error starting connectivity monitoring: $e');
+      // Fallback: mode online par défaut
+      _updateConnectivityStatus([ConnectivityResult.wifi]);
+    }
+  }
+
+  // Méthode spécifique pour le web (évite les problèmes Chrome)
+  void _startWebConnectivityMonitoring() {
+    try {
+      // Pour le web, on utilise une approche plus simple
+      _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
+            (dynamic results) {
+          try {
+            // Sur le web, traiter différemment
+            bool isConnected = true;
+
+            if (results != null) {
+              if (results is List && results.isNotEmpty) {
+                // Vérifier si au moins un élément n'est pas 'none'
+                isConnected = results.any((item) =>
+                item.toString() != 'ConnectivityResult.none' &&
+                    item.toString() != 'none'
+                );
+              } else if (results.toString() == 'ConnectivityResult.none' ||
+                  results.toString() == 'none') {
+                isConnected = false;
+              }
+            }
+
+            print('Web connectivity changed: $results -> isConnected: $isConnected');
+
+            _updateConnectivityStatusSimple(isConnected);
+          } catch (e) {
+            print('Error processing web connectivity change: $e');
+            // En cas d'erreur, supposer qu'on est online
+            _updateConnectivityStatusSimple(true);
+          }
+        },
+        onError: (error) {
+          print('Web connectivity stream error: $error');
+          // En cas d'erreur du stream, supposer qu'on est online
+          _updateConnectivityStatusSimple(true);
+        },
+      );
+    } catch (e) {
+      print('Error starting web connectivity monitoring: $e');
+    }
+  }
+
+  // Méthode pour mobile (approche standard)
+  void _startMobileConnectivityMonitoring() {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
+          (dynamic results) {
+        try {
+          final convertedResults = _convertToConnectivityResultList(results);
+          _updateConnectivityStatus(convertedResults);
+        } catch (e) {
+          print('Error processing mobile connectivity change: $e');
+          _updateConnectivityStatus([ConnectivityResult.none]);
+        }
+      },
+      onError: (error) {
+        print('Mobile connectivity stream error: $error');
+        _updateConnectivityStatus([ConnectivityResult.none]);
+      },
+    );
+  }
+
+  // Méthode simplifiée pour le web
+  void _updateConnectivityStatusSimple(bool isConnected) {
+    _connectivityDebounceTimer?.cancel();
+    _connectivityDebounceTimer = Timer(Duration(seconds: 2), () {
+      try {
+        final wasOffline = !_isOnline;
+        _isOnline = isConnected;
+
+        print('Web connectivity status updated: $_isOnline');
+
+        if (wasOffline && _isOnline) {
+          print('Web connection restored, triggering sync...');
+          _syncWithServer();
+        }
+
+        onConnectivityChanged?.call(_isOnline);
+      } catch (e) {
+        print('Error updating web connectivity status: $e');
+      }
     });
   }
 
-  // Debounce sur la connectivité
+  // Méthode spécifique pour détection web
+  void _handleWebConnectivity() {
+    try {
+      // Sur le web, on peut aussi utiliser les API natives du navigateur
+      if (kIsWeb) {
+        // Essayer d'abord avec connectivity_plus de façon simple
+        Connectivity().checkConnectivity().then((result) {
+          bool isConnected = true;
+          if (result.toString().contains('none')) {
+            isConnected = false;
+          }
+          _updateConnectivityStatusSimple(isConnected);
+        }).catchError((e) {
+          print('Web connectivity check failed: $e');
+          // Fallback: supposer qu'on est connecté
+          _updateConnectivityStatusSimple(true);
+        });
+      }
+    } catch (e) {
+      print('Error handling web connectivity: $e');
+      _updateConnectivityStatusSimple(true);
+    }
+  }
+
+  // NOUVELLE MÉTHODE: Conversion sécurisée pour mobile uniquement
+  List<ConnectivityResult> _convertToConnectivityResultList(dynamic results) {
+    try {
+      if (results is List<ConnectivityResult>) {
+        return results;
+      }
+
+      if (results is ConnectivityResult) {
+        return [results];
+      }
+
+      if (results is List) {
+        return results.map((item) => _convertSingleResult(item)).toList();
+      }
+
+      if (results is String) {
+        return [_convertStringToResult(results)];
+      }
+
+      print('Unknown connectivity result type: ${results.runtimeType}');
+      return [ConnectivityResult.other];
+
+    } catch (e) {
+      print('Error converting connectivity results: $e');
+      return [ConnectivityResult.other];
+    }
+  }
+
+  ConnectivityResult _convertSingleResult(dynamic item) {
+    if (item is ConnectivityResult) {
+      return item;
+    }
+    if (item is String) {
+      return _convertStringToResult(item);
+    }
+    return ConnectivityResult.other;
+  }
+
+  ConnectivityResult _convertStringToResult(String value) {
+    switch (value.toLowerCase()) {
+      case 'wifi':
+        return ConnectivityResult.wifi;
+      case 'mobile':
+        return ConnectivityResult.mobile;
+      case 'ethernet':
+        return ConnectivityResult.ethernet;
+      case 'none':
+        return ConnectivityResult.none;
+      case 'bluetooth':
+        return ConnectivityResult.bluetooth;
+      case 'vpn':
+        return ConnectivityResult.vpn;
+      case 'other':
+        return ConnectivityResult.other;
+      default:
+        print('Unknown connectivity string: $value');
+        return ConnectivityResult.other;
+    }
+  }
+
+  // Debounce sur la connectivité (pour mobile)
   void _updateConnectivityStatus(List<ConnectivityResult> results) {
     _connectivityDebounceTimer?.cancel();
     _connectivityDebounceTimer = Timer(Duration(seconds: 2), () {
-      final wasOffline = !_isOnline;
-      _isOnline = results.any((result) => result != ConnectivityResult.none);
+      try {
+        final wasOffline = !_isOnline;
+        _isOnline = results.any((result) => result != ConnectivityResult.none);
 
-      if (wasOffline && _isOnline) {
-        _syncWithServer();
+        print('Mobile connectivity status updated: $_isOnline (results: $results)');
+
+        if (wasOffline && _isOnline) {
+          print('Mobile connection restored, triggering sync...');
+          _syncWithServer();
+        }
+
+        onConnectivityChanged?.call(_isOnline);
+      } catch (e) {
+        print('Error updating mobile connectivity status: $e');
       }
-
-      onConnectivityChanged?.call(_isOnline);
     });
   }
 
@@ -74,7 +272,7 @@ class OfflineManager {
     });
   }
 
-  // Example: Récupérer les tâches (avec fallback offline)
+  // Le reste des méthodes reste identique...
   Future<List<MaintenanceTask>> getTasks(AuthService authService, {String? status}) async {
     if (_isOnline && authService.apiService != null && !authService.isOfflineMode) {
       try {
@@ -106,12 +304,9 @@ class OfflineManager {
   }
 
   Future<List<MaintenanceTask>> _createSampleTasks() async {
-    // (code exemple inchangé)
-    // ...
     return [];
   }
 
-  // Synchronisation avec protection contre appels concurrents et cooldown
   Future<void> _syncWithServer() async {
     if (!_isOnline || _isSyncing) return;
     if (_lastSyncTime != null && DateTime.now().difference(_lastSyncTime!) < _syncCooldown) {

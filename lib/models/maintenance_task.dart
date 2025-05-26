@@ -35,7 +35,8 @@ class MaintenanceTask {
       scheduledDate: json['scheduled_date'] != null
           ? DateTime.tryParse(json['scheduled_date'].toString()) ?? DateTime(1970)
           : DateTime(1970),
-      status: json['stage_id']['id'],
+      // CORRECTION CRITIQUE: Gestion sécurisée de stage_id
+      status: _extractStatusFromJson(json),
       priority: json['priority'] is int
           ? json['priority']
           : int.tryParse(json['priority']?.toString() ?? '0') ?? 0,
@@ -58,6 +59,40 @@ class MaintenanceTask {
     );
   }
 
+  // NOUVELLE MÉTHODE: Extraction sécurisée du status
+  static int _extractStatusFromJson(Map<String, dynamic> json) {
+    try {
+      // Cas 1: status direct
+      if (json['status'] != null) {
+        if (json['status'] is int) {
+          return json['status'];
+        }
+        if (json['status'] is String) {
+          return int.tryParse(json['status']) ?? 1;
+        }
+      }
+
+      // Cas 2: stage_id comme object
+      if (json['stage_id'] != null) {
+        if (json['stage_id'] is Map && json['stage_id']['id'] != null) {
+          return json['stage_id']['id'];
+        }
+        if (json['stage_id'] is int) {
+          return json['stage_id'];
+        }
+        if (json['stage_id'] is String) {
+          return int.tryParse(json['stage_id']) ?? 1;
+        }
+      }
+
+      // Fallback
+      return 1; // Status par défaut: pending
+    } catch (e) {
+      print('Error extracting status from JSON: $e');
+      return 1;
+    }
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -65,6 +100,7 @@ class MaintenanceTask {
       'description': description,
       'scheduled_date': scheduledDate.toIso8601String(),
       'status': status,
+      'stage_id': {'id': status}, // Format compatible avec l'API
       'priority': priority,
       'technician_id': technicianId,
       'equipment_id': equipmentId,

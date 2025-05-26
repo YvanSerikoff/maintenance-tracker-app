@@ -264,5 +264,24 @@ class CMMSApiService {
       return null;
     }
   }
+
+  getEmail() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/flutter/user/profile/'),
+        headers: defaultHeaders,
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Erreur: ${response.statusCode} - ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Exception: $e');
+      return null;
+    }
+  }
 }
 
