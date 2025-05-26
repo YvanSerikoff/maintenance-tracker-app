@@ -44,7 +44,7 @@ class _OfflineIndicatorState extends State<OfflineIndicator> {
           Icon(Icons.cloud_off, color: Colors.white, size: 20),
           SizedBox(width: 8),
           Text(
-            'Mode hors ligne - Les modifications seront synchronisées',
+            'Offline mode enabled',
             style: TextStyle(color: Colors.white, fontSize: 14),
           ),
         ],
