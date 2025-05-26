@@ -35,7 +35,7 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
       if (apiService != null) {
         fetchEquipment(widget.task.id, apiService);
       } else {
-        print('Erreur : AuthService non initialisé');
+        print('Error: API service not available');
       }
     });
   }
@@ -47,12 +47,12 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
         setState(() {
           _equipment = Equipment.fromJson(response['data']['equipment_id']);
         });
-        print('Équipement récupéré : ${_equipment?.category}');
+        print('Equipment retrieved : ${_equipment?.category}');
       } else {
-        print('Erreur API : ${response != null ? response['message'] : 'Réponse nulle'}');
+        print('API error : ${response != null ? response['message'] : 'No response'}');
       }
     } catch (e) {
-      print('Erreur lors de l\'appel API : $e');
+      print('Error fetching equipment: $e');
     }
   }
 
@@ -87,20 +87,20 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Statut de la tâche mis à jour avec succès'),
+            content: Text('Task status updated successfully'),
             backgroundColor: Colors.green,
           ),
         );
       } else {
         final errorMessage = response != null ?
-        (response['message'] ?? 'Échec de la mise à jour du statut') :
-        'Échec de la mise à jour du statut';
+        (response['message'] ?? 'Status update failed') :
+        'Status update failed with no response';
         throw Exception(errorMessage);
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur lors de la mise à jour : ${e.toString()}'),
+          content: Text('Error while updating : ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -117,7 +117,7 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
     final statusIcon = _getStatusIcon(_selectedStatus ?? widget.task.status);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Détail de la tâche'),
+        title: Text('Task Details'),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -192,50 +192,76 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
                 ),
               ),
               SizedBox(height: 24),
-              // Statut
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
+              // Statut & Priorité responsive
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  bool isWide = constraints.maxWidth > 500;
+                  return Flex(
+                    direction: isWide ? Axis.horizontal : Axis.vertical,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Statut', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.grey.shade800)),
-                      SizedBox(height: 16),
-                      _isSaving
-                          ? Center(child: CircularProgressIndicator())
-                          : Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildStatusButton(AppConstants.STATUS_PENDING, 'En attente', Colors.orange),
-                          _buildStatusButton(AppConstants.STATUS_IN_PROGRESS, 'En cours', Colors.blue),
-                          _buildStatusButton(AppConstants.STATUS_COMPLETED, 'Terminée', Colors.green),
-                          _buildStatusButton(AppConstants.STATUS_CANCELLED, 'Mise de côté', Colors.redAccent),
-                        ],
+                      // Statut
+                      Expanded(
+                        flex: isWide ? 3 : 0,
+                        child: Card(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 2,
+                          margin: EdgeInsets.only(bottom: isWide ? 0 : 10, right: isWide ? 10 : 0),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.grey.shade800)),
+                                SizedBox(height: 6),
+                                _isSaving
+                                    ? Center(child: SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2)))
+                                    : SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.start,
+                                          children: [
+                                            _buildStatusButton(AppConstants.STATUS_PENDING, 'Pending', Colors.orange),
+                                            SizedBox(width: 6),
+                                            _buildStatusButton(AppConstants.STATUS_IN_PROGRESS, 'In Progress', Colors.blue),
+                                            SizedBox(width: 6),
+                                            _buildStatusButton(AppConstants.STATUS_COMPLETED, 'Completed', Colors.green),
+                                            SizedBox(width: 6),
+                                            _buildStatusButton(AppConstants.STATUS_CANCELLED, 'Rebuttal', Colors.redAccent),
+                                          ],
+                                        ),
+                                      ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (isWide) SizedBox(width: 10),
+                      // Priorité
+                      Flexible(
+                        flex: 2,
+                        child: Card(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 2,
+                          margin: EdgeInsets.zero,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.flag, color: _getPriorityColor(widget.task.priority), size: 20),
+                                SizedBox(width: 6),
+                                Text(_getPriorityLabel(widget.task.priority), style: TextStyle(fontWeight: FontWeight.bold, color: _getPriorityColor(widget.task.priority), fontSize: 15)),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ],
-                  ),
-                ),
+                  );
+                },
               ),
-              SizedBox(height: 16),
-              // Priorité
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Icon(Icons.flag, color: _getPriorityColor(widget.task.priority)),
-                      SizedBox(width: 8),
-                      Text('Priorité : ', style: TextStyle(fontWeight: FontWeight.bold)),
-                      Text(_getPriorityLabel(widget.task.priority), style: TextStyle(color: _getPriorityColor(widget.task.priority))),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 16),
+              SizedBox(height: 12),
               // Description
               Card(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -248,7 +274,7 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
                       Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.grey.shade800)),
                       SizedBox(height: 8),
                       widget.task.description.isEmpty
-                          ? Text('Aucune description')
+                          ? Text('No description')
                           : Html(data: widget.task.description),
                     ],
                   ),
@@ -264,16 +290,16 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Équipement', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.grey.shade800)),
+                      Text('Equipment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.grey.shade800)),
                       SizedBox(height: 8),
                       _equipment == null
-                          ? Text('Information non disponible')
+                          ? Text('Information not available')
                           : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(_equipment!.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                           SizedBox(height: 4),
-                          Text('Catégorie : ${_equipment!.category}'),
+                          Text('Category : ${_equipment!.category}'),
                           SizedBox(height: 4),
                           Text('Localisation : ${_equipment!.location}'),
                           if (_equipment!.model3dViewerUrl != null) ...[
@@ -285,12 +311,12 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
                                   await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Impossible d\'ouvrir le lien')),
+                                    SnackBar(content: Text('Could not launch 3D model viewer')),
                                   );
                                 }
                               },
                               icon: Icon(Icons.view_in_ar),
-                              label: Text('Voir le modèle 3D'),
+                              label: Text('See 3D Model'),
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700),
                             ),
                           ],
@@ -307,7 +333,7 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
                   _showAddNoteDialog();
                 },
                 icon: Icon(Icons.note_add),
-                label: Text('Ajouter un compte-rendu'),
+                label: Text('Add Work Log'),
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 50),
                   backgroundColor: Colors.orange,
@@ -361,15 +387,15 @@ class TaskDetailScreenState extends State<TaskDetailScreen> {
   String _getPriorityLabel(int priority) {
     switch (priority) {
       case 0:
-        return 'Faible';
+        return 'Low';
       case 1:
-        return 'Normale';
+        return 'Normal';
       case 2:
-        return 'Haute';
+        return 'High';
       case 3:
-        return 'Urgente';
+        return 'Urgent';
       default:
-        return 'Inconnue';
+        return 'Unknown';
     }
   }
 
