@@ -10,6 +10,7 @@ import 'package:maintenance_app/screens/auth/login_screen.dart';
 import 'package:maintenance_app/widgets/offline_indicator.dart';
 import '../tasks/task_detail_screen.dart';
 import 'package:maintenance_app/widgets/task_card.dart';
+import 'package:maintenance_app/widgets/app_bottom_nav_bar.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -160,7 +161,6 @@ class DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-
       body: Column(
         children: [
           // Indicateur offline
@@ -410,38 +410,7 @@ class DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-
-      // Bottom Navigation améliorée
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.blue.shade700,
-        unselectedItemColor: Colors.grey.shade600,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment),
-            label: 'Tasks',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-        onTap: (index) {
-          if (index == 1) {
-            _navigateToTaskList(0);
-          } else if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => ProfileScreen()),
-            );
-          }
-        },
-      ),
+      bottomNavigationBar: AppBottomNavBar(currentIndex: 0),
     );
   }
 

@@ -36,6 +36,30 @@ class TaskCard extends StatelessWidget {
         statusText = 'Unknown';
     }
 
+    Color priorityColor;
+    String priorityText;
+    switch (task.priority) {
+      case 0:
+        priorityText = 'Low';
+        priorityColor = Colors.green;
+        break;
+      case 1:
+        priorityText = 'Normal';
+        priorityColor = Colors.blue;
+        break;
+      case 2:
+        priorityText = 'High';
+        priorityColor = Colors.orange;
+        break;
+      case 3:
+        priorityText = 'Urgent';
+        priorityColor = Colors.red;
+        break;
+      default:
+        priorityText = 'Unknown';
+        priorityColor = Colors.grey;
+    }
+
     return Card(
       margin: EdgeInsets.only(bottom: 12),
       elevation: 2,
@@ -80,6 +104,23 @@ class TaskCard extends StatelessWidget {
                     statusText,
                     style: TextStyle(
                       color: statusColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: priorityColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: priorityColor),
+                  ),
+                  child: Text(
+                    priorityText,
+                    style: TextStyle(
+                      color: priorityColor,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),

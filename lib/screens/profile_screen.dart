@@ -8,6 +8,7 @@ import 'package:maintenance_app/config/constants.dart';
 import 'package:maintenance_app/screens/auth/login_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:maintenance_app/widgets/app_bottom_nav_bar.dart';
 
 import '../models/user.dart';
 import 'dashboard/dashboard_screen.dart';
@@ -407,37 +408,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment),
-            label: 'Tasks',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => DashboardScreen()),
-            );
-          } else if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => TaskListScreen()),
-            );
-          }
-        },
-      ),
+      bottomNavigationBar: AppBottomNavBar(currentIndex: 2),
     );
   }
 }
-
