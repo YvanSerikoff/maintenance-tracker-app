@@ -38,7 +38,6 @@ class DashboardScreenState extends State<DashboardScreen> {
 
     _offlineManager.onSyncCompleted = () {
       if (mounted) {
-        _loadDashboardData(); // Recharger après synchronisation
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Synchronisation terminée'),

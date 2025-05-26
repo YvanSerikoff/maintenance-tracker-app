@@ -40,7 +40,6 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
     _offlineManager.onSyncCompleted = () {
       if (mounted) {
-        _loadTasks(); // Recharger après synchronisation
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Synchronisation terminée'),
