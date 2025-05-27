@@ -1,16 +1,23 @@
+import '../screens/dashboard/flutter_dashboard_widget.dart';
+import 'equipment.dart';
+
 class MaintenanceTask {
   final int id;
   final String name;
   final String description;
   final DateTime scheduledDate;
   final int status;
-  final int priority; // 0-3 (low to high)
+  final int priority;
   final int technicianId;
   final int equipmentId;
   final String location;
   final List<String> attachments;
   final DateTime createdAt;
   final DateTime lastUpdated;
+
+  // ✨ NOUVEAU : Stockage direct des infos équipement
+  final Equipment? equipment;
+  final Map<String, dynamic>? additionalData;
 
   MaintenanceTask({
     required this.id,
@@ -25,6 +32,8 @@ class MaintenanceTask {
     this.attachments = const [],
     required this.createdAt,
     required this.lastUpdated,
+    this.equipment,
+    this.additionalData,
   });
 
   factory MaintenanceTask.fromJson(Map<String, dynamic> json) {
@@ -35,7 +44,6 @@ class MaintenanceTask {
       scheduledDate: json['scheduled_date'] != null
           ? DateTime.tryParse(json['scheduled_date'].toString()) ?? DateTime(1970)
           : DateTime(1970),
-      // CORRECTION CRITIQUE: Gestion sécurisée de stage_id
       status: _extractStatusFromJson(json),
       priority: json['priority'] is int
           ? json['priority']
@@ -56,13 +64,37 @@ class MaintenanceTask {
       lastUpdated: json['last_updated'] != null
           ? DateTime.tryParse(json['last_updated'].toString()) ?? DateTime(1970)
           : DateTime(1970),
+      // ✨ NOUVEAU : Parsing des données étendues
+      equipment: json['equipment'] != null
+          ? Equipment.fromJson(json['equipment'])
+          : null,
+      additionalData: json['additional_data'] as Map<String, dynamic>?,
     );
   }
 
-  // NOUVELLE MÉTHODE: Extraction sécurisée du status
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'scheduled_date': scheduledDate.toIso8601String(),
+      'status': status,
+      'stage_id': {'id': status},
+      'priority': priority,
+      'technician_id': technicianId,
+      'equipment_id': equipmentId,
+      'location': location,
+      'attachments': attachments,
+      'created_at': createdAt.toIso8601String(),
+      'last_updated': lastUpdated.toIso8601String(),
+      // ✨ NOUVEAU : Sérialisation des données étendues
+      'equipment': equipment?.toJson(),
+      'additional_data': additionalData,
+    };
+  }
+
   static int _extractStatusFromJson(Map<String, dynamic> json) {
     try {
-      // Cas 1: status direct
       if (json['status'] != null) {
         if (json['status'] is int) {
           return json['status'];
@@ -72,7 +104,6 @@ class MaintenanceTask {
         }
       }
 
-      // Cas 2: stage_id comme object
       if (json['stage_id'] != null) {
         if (json['stage_id'] is Map && json['stage_id']['id'] != null) {
           return json['stage_id']['id'];
@@ -85,29 +116,10 @@ class MaintenanceTask {
         }
       }
 
-      // Fallback
-      return 1; // Status par défaut: pending
+      return 1;
     } catch (e) {
       print('Error extracting status from JSON: $e');
       return 1;
     }
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'description': description,
-      'scheduled_date': scheduledDate.toIso8601String(),
-      'status': status,
-      'stage_id': {'id': status}, // Format compatible avec l'API
-      'priority': priority,
-      'technician_id': technicianId,
-      'equipment_id': equipmentId,
-      'location': location,
-      'attachments': attachments,
-      'created_at': createdAt.toIso8601String(),
-      'last_updated': lastUpdated.toIso8601String(),
-    };
   }
 }

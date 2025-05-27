@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:maintenance_app/models/maintenance_task.dart';
 import 'package:maintenance_app/config/constants.dart';
 import 'package:maintenance_app/screens/tasks/task_detail_screen.dart';
+import 'package:flutter_html/flutter_html.dart';
 
 class TaskCard extends StatelessWidget {
   final MaintenanceTask task;
@@ -79,50 +80,57 @@ class TaskCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              task.description,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            Html(
+              data: task.description,
             ),
             SizedBox(height: 4),
             Row(
               children: [
                 Icon(Icons.access_time, size: 14, color: Colors.grey),
                 SizedBox(width: 4),
-                Text(
-                  '${task.scheduledDate.day}/${task.scheduledDate.month}/${task.scheduledDate.year}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                Flexible(
+                  child: Text(
+                    '${task.scheduledDate.day}/${task.scheduledDate.month}/${task.scheduledDate.year}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 SizedBox(width: 16),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    statusText,
-                    style: TextStyle(
-                      color: statusColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                Flexible(
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      statusText,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
                 SizedBox(width: 8),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: priorityColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: priorityColor),
-                  ),
-                  child: Text(
-                    priorityText,
-                    style: TextStyle(
-                      color: priorityColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                Flexible(
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: priorityColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: priorityColor),
+                    ),
+                    child: Text(
+                      priorityText,
+                      style: TextStyle(
+                        color: priorityColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),

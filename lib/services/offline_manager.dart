@@ -3,7 +3,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:maintenance_app/models/maintenance_task.dart';
 import 'package:maintenance_app/services/offline_storage_service.dart';
 import 'package:maintenance_app/services/auth_service.dart';
-import 'package:flutter/foundation.dart'; // Pour kIsWeb
+import 'package:flutter/foundation.dart';
+
+import 'flutter_basic_auth.dart'; // Pour kIsWeb
 
 class OfflineManager {
   static final OfflineManager _instance = OfflineManager._internal();
@@ -378,5 +380,99 @@ class OfflineManager {
     _connectivitySubscription?.cancel();
     _syncTimer?.cancel();
     _connectivityDebounceTimer?.cancel();
+  }
+
+  Future<MaintenanceTask?> getCompleteTask(AuthService authService, int taskId) async {
+    try {
+      // 1. Essayer de récupérer depuis le cache local
+      final cachedTask = await _storage.getCachedTaskById(taskId);
+
+      if (isOffline || authService.isOfflineMode) {
+        // Mode hors ligne : retourner les données en cache
+        return cachedTask;
+      }
+
+      // 2. Mode en ligne : récupérer les données fraîches
+      if (authService.apiService != null) {
+        final completeTaskData = await _fetchCompleteTaskData(authService.apiService!, taskId);
+
+        if (completeTaskData != null) {
+          // Mettre à jour le cache avec les données complètes
+          await _storage.cacheCompleteTask(completeTaskData);
+          return completeTaskData;
+        }
+      }
+
+      // 3. Fallback : données en cache
+      return cachedTask;
+    } catch (e) {
+      print('Error getting complete task: $e');
+      // En cas d'erreur, retourner les données en cache si disponibles
+      return await _storage.getCachedTaskById(taskId);
+    }
+  }
+
+  // ✨ NOUVELLE MÉTHODE : Récupérer toutes les données d'une tâche depuis l'API
+  Future<MaintenanceTask?> _fetchCompleteTaskData(CMMSApiService apiService, int taskId) async {
+    try {
+      // Récupérer les données de base de la tâche
+      final taskResponse = await apiService.getMaintenanceRequest(taskId);
+      if (taskResponse == null || taskResponse['success'] != true) {
+        return null;
+      }
+
+      Map<String, dynamic> taskData = Map<String, dynamic>.from(taskResponse['data']);
+
+      // Récupérer les données d'équipement
+      try {
+        final equipmentResponse = await apiService.getEquipmentByRequest(taskId);
+        if (equipmentResponse != null && equipmentResponse['success'] == true) {
+          taskData['equipment'] = equipmentResponse['data']['equipment_id'];
+        }
+      } catch (e) {
+        print('Warning: Could not fetch equipment data: $e');
+      }
+
+      // Récupérer d'autres données nécessaires (pièces jointes, etc.)
+      try {
+        final attachmentsResponse = await apiService.getAttachmentsByRequest(taskId);
+        if (attachmentsResponse != null && attachmentsResponse['success'] == true) {
+          taskData['attachments'] = attachmentsResponse['data'];
+        }
+      } catch (e) {
+        print('Warning: Could not fetch attachments: $e');
+      }
+
+      return MaintenanceTask.fromJson(taskData);
+    } catch (e) {
+      print('Error fetching complete task data: $e');
+      return null;
+    }
+  }
+
+  Future<void> preloadAllTaskData(AuthService authService) async {
+    if (isOffline || authService.apiService == null) return;
+
+    try {
+      // Récupérer la liste des tâches
+      final tasks = await getTasks(authService);
+
+      // Pré-charger les données complètes pour chaque tâche
+      for (final task in tasks) {
+        await _fetchCompleteTaskData(authService.apiService!, task.id);
+
+        // Petite pause pour éviter de surcharger l'API
+        await Future.delayed(Duration(milliseconds: 100));
+      }
+
+      print('Preloaded complete data for ${tasks.length} tasks');
+    } catch (e) {
+      print('Error preloading task data: $e');
+    }
+  }
+
+  addToSyncQueue(String s, Map<String, Object> map) {
+    // Ajout d'une tâche à la file d'attente de synchronisation
+    _storage.addToSyncQueue(s, map);
   }
 }

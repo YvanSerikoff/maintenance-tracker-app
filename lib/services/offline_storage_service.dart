@@ -126,4 +126,72 @@ class OfflineStorageService {
   Future<void> clearModifiedTasks() async {
     await _metadataBox.delete('modified_tasks');
   }
+
+  // ✨ NOUVELLE MÉTHODE : Sauvegarder une tâche complète
+  Future<void> cacheCompleteTask(MaintenanceTask task) async {
+    try {
+      final taskData = {
+        'task': task.toJson(),
+        'cached_at': DateTime.now().toIso8601String(),
+      };
+
+      await _tasksBox.put('complete_task_${task.id}', jsonEncode(taskData));
+    } catch (e) {
+      print('Error caching complete task: $e');
+    }
+  }
+
+  // ✨ NOUVELLE MÉTHODE : Récupérer une tâche complète depuis le cache
+  Future<MaintenanceTask?> getCachedTaskById(int taskId) async {
+    try {
+      final taskJson = _tasksBox.get('complete_task_$taskId');
+      if (taskJson == null) return null;
+
+      final Map<String, dynamic> taskData = jsonDecode(taskJson);
+      return MaintenanceTask.fromJson(taskData['task']);
+    } catch (e) {
+      print('Error loading cached task: $e');
+      return null;
+    }
+  }
+
+  // ✨ NOUVELLE MÉTHODE : Vérifier si les données d'une tâche sont en cache
+  Future<bool> hasCompleteTaskData(int taskId) async {
+    try {
+      final taskJson = _tasksBox.get('complete_task_$taskId');
+      return taskJson != null;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ✨ NOUVELLE MÉTHODE : Nettoyer les anciennes données en cache
+  Future<void> cleanOldCachedTasks({Duration maxAge = const Duration(days: 7)}) async {
+    try {
+      final now = DateTime.now();
+      final keysToDelete = <String>[];
+
+      for (final key in _tasksBox.keys) {
+        if (key.toString().startsWith('complete_task_')) {
+          final taskJson = _tasksBox.get(key);
+          if (taskJson != null) {
+            final taskData = jsonDecode(taskJson);
+            final cachedAt = DateTime.tryParse(taskData['cached_at']);
+
+            if (cachedAt != null && now.difference(cachedAt) > maxAge) {
+              keysToDelete.add(key.toString());
+            }
+          }
+        }
+      }
+
+      for (final key in keysToDelete) {
+        await _tasksBox.delete(key);
+      }
+
+      print('Cleaned ${keysToDelete.length} old cached tasks');
+    } catch (e) {
+      print('Error cleaning old cached tasks: $e');
+    }
+  }
 }

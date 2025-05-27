@@ -38,32 +38,6 @@ class MaintenanceRequest {
   }
 }
 
-class Equipment {
-  final int id;
-  final String name;
-  final String? location;
-  final String? model3dViewerUrl;
-  final bool has3dModel;
-
-  Equipment({
-    required this.id,
-    required this.name,
-    this.location,
-    this.model3dViewerUrl,
-    required this.has3dModel,
-  });
-
-  factory Equipment.fromJson(Map<String, dynamic> json) {
-    return Equipment(
-      id: json['id'],
-      name: json['name'],
-      location: json['location'],
-      model3dViewerUrl: json['model3d_id']?['viewer_url'],
-      has3dModel: json['model3d_id'] != null,
-    );
-  }
-}
-
 // Widget principal du dashboard
 class CMMSDashboard extends StatefulWidget {
   final String baseUrl;
