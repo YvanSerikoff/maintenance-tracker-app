@@ -7,6 +7,7 @@ import 'package:maintenance_app/models/equipment.dart';
 import 'package:maintenance_app/services/auth_service.dart';
 import 'package:maintenance_app/services/offline_manager.dart';
 import 'package:maintenance_app/config/constants.dart';
+import 'package:maintenance_app/widgets/parts_dropdown_card.dart'; // Nouveau import
 import 'package:url_launcher/url_launcher.dart';
 
 class TaskDetailScreen extends StatefulWidget {
@@ -270,6 +271,9 @@ class TaskDetailScreenState extends State<TaskDetailScreen> with TickerProviderS
                   SizedBox(height: 16),
                   _buildEquipmentCard(),
                   SizedBox(height: 16),
+                  // ✨ NOUVELLE CARTE DES PIÈCES
+                  PartsDropdownCard(parts: currentTask.parts),
+                  SizedBox(height: 16),
                   _buildActionButtons(),
                   SizedBox(height: 16),
                   _buildOfflineStatusCard(),
@@ -283,6 +287,8 @@ class TaskDetailScreenState extends State<TaskDetailScreen> with TickerProviderS
       floatingActionButton: null,
     );
   }
+
+  // ... Le reste du code reste identique aux méthodes existantes ...
 
   /// Construction du header avec informations principales
   Widget _buildHeader(MaintenanceTask task, Color statusColor, IconData statusIcon) {
@@ -919,4 +925,3 @@ class TaskDetailScreenState extends State<TaskDetailScreen> with TickerProviderS
     }
   }
 }
-
