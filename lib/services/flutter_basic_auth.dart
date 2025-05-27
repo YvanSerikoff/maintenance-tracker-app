@@ -226,25 +226,6 @@ class CMMSApiService {
     }
   }
 
-  getEquipmentByRequest(int requestId) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/flutter/maintenance/requests/$requestId'),
-        headers: defaultHeaders,
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        print('Erreur: ${response.statusCode} - ${response.body}');
-        return null;
-      }
-    } catch (e) {
-      print('Exception: $e');
-      return null;
-    }
-  }
-
   Future<Map<String, dynamic>?> updateUserEmail(String email) async {
     try {
       final response = await http.put(
@@ -303,71 +284,8 @@ class CMMSApiService {
     }
   }
 
-  Future<Map<String, dynamic>?> getAttachmentsByRequest(int requestId) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/flutter/maintenance/requests/$requestId/attachments'),
-        headers: defaultHeaders,
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        print('Erreur: ${response.statusCode} - ${response.body}');
-        return null;
-      }
-    } catch (e) {
-      print('Exception: $e');
-      return null;
-    }
-  }
-
-  Future<Map<String, dynamic>?> getEquipmentWithDetails(int equipmentId) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/flutter/maintenance/equipment/$equipmentId/details'),
-        headers: defaultHeaders,
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        print('Erreur: ${response.statusCode} - ${response.body}');
-        return null;
-      }
-    } catch (e) {
-      print('Exception: $e');
-      return null;
-    }
-  }
-
   Future<Map<String, dynamic>?> updateTaskStatus(int taskId, int newStatus) async {
     return await updateMaintenanceRequest(taskId, {'stage_id': newStatus});
-  }
-
-  Future<Map<String, dynamic>?> syncOfflineChanges(List<Map<String, dynamic>> changes) async {
-    try {
-      final requestData = {
-        'changes': changes,
-        'sync_timestamp': DateTime.now().toIso8601String(),
-      };
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/flutter/maintenance/sync'),
-        headers: defaultHeaders,
-        body: json.encode(requestData),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        print('Erreur: ${response.statusCode} - ${response.body}');
-        return null;
-      }
-    } catch (e) {
-      print('Exception: $e');
-      return null;
-    }
   }
 }
 

@@ -97,7 +97,6 @@ class TaskDetailScreenState extends State<TaskDetailScreen> with TickerProviderS
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
 
-      // Récupérer la tâche complète via l'OfflineManager
       final completeTask = await _offlineManager.getCompleteTask(authService, widget.task.id);
 
       if (completeTask != null && mounted) {

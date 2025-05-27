@@ -37,6 +37,13 @@ class MaintenanceTask {
   });
 
   factory MaintenanceTask.fromJson(Map<String, dynamic> json) {
+    // Regrouper les champs additionnels non mappés
+    final additional = <String, dynamic>{};
+    for (final key in json.keys) {
+      if (!['id','name','description','scheduled_date','status','priority','technician_id','equipment_id','location','attachments','created_at','last_updated','equipment'].contains(key)) {
+        additional[key] = json[key];
+      }
+    }
     return MaintenanceTask(
       id: json['id'] ?? 0,
       name: json['name']?.toString() ?? '',
@@ -54,21 +61,24 @@ class MaintenanceTask {
       equipmentId: json['equipment_id'] is int
           ? json['equipment_id']
           : (json['equipment_id'] is Map && json['equipment_id']['id'] != null
-          ? json['equipment_id']['id']
-          : 0),
+              ? json['equipment_id']['id']
+              : 0),
       location: json['location']?.toString() ?? '',
       attachments: (json['attachments'] as List?)?.map((e) => e.toString()).toList() ?? [],
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime(1970)
-          : DateTime(1970),
+          : (json['detailed_info'] != null && json['detailed_info']['created_date'] != null
+              ? DateTime.tryParse(json['detailed_info']['created_date'].toString()) ?? DateTime(1970)
+              : DateTime(1970)),
       lastUpdated: json['last_updated'] != null
           ? DateTime.tryParse(json['last_updated'].toString()) ?? DateTime(1970)
-          : DateTime(1970),
-      // ✨ NOUVEAU : Parsing des données étendues
+          : (json['detailed_info'] != null && json['detailed_info']['last_update'] != null
+              ? DateTime.tryParse(json['detailed_info']['last_update'].toString()) ?? DateTime(1970)
+              : DateTime(1970)),
       equipment: json['equipment'] != null
           ? Equipment.fromJson(json['equipment'])
           : null,
-      additionalData: json['additional_data'] as Map<String, dynamic>?,
+      additionalData: additional.isNotEmpty ? additional : null,
     );
   }
 
@@ -103,7 +113,6 @@ class MaintenanceTask {
           return int.tryParse(json['status']) ?? 1;
         }
       }
-
       if (json['stage_id'] != null) {
         if (json['stage_id'] is Map && json['stage_id']['id'] != null) {
           return json['stage_id']['id'];
@@ -115,7 +124,10 @@ class MaintenanceTask {
           return int.tryParse(json['stage_id']) ?? 1;
         }
       }
-
+      // Ajout : support du statut dans stage.id
+      if (json['stage'] != null && json['stage'] is Map && json['stage']['id'] != null) {
+        return json['stage']['id'];
+      }
       return 1;
     } catch (e) {
       print('Error extracting status from JSON: $e');
@@ -123,3 +135,4 @@ class MaintenanceTask {
     }
   }
 }
+

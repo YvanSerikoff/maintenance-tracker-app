@@ -335,7 +335,6 @@ class OfflineManager {
   Future<void> _processSyncItem(Map<String, dynamic> item) async {
     try {
       final String action = item['action'];
-      final Map<String, dynamic> data = item['data'];
 
       switch (action) {
         case 'update_status':
@@ -386,7 +385,6 @@ class OfflineManager {
     try {
       // 1. Essayer de récupérer depuis le cache local
       final cachedTask = await _storage.getCachedTaskById(taskId);
-
       if (isOffline || authService.isOfflineMode) {
         // Mode hors ligne : retourner les données en cache
         return cachedTask;
@@ -412,7 +410,6 @@ class OfflineManager {
     }
   }
 
-  // ✨ NOUVELLE MÉTHODE : Récupérer toutes les données d'une tâche depuis l'API
   Future<MaintenanceTask?> _fetchCompleteTaskData(CMMSApiService apiService, int taskId) async {
     try {
       // Récupérer les données de base de la tâche
@@ -421,27 +418,8 @@ class OfflineManager {
         return null;
       }
 
+      // Le JSON complet est dans taskResponse['data']
       Map<String, dynamic> taskData = Map<String, dynamic>.from(taskResponse['data']);
-
-      // Récupérer les données d'équipement
-      try {
-        final equipmentResponse = await apiService.getEquipmentByRequest(taskId);
-        if (equipmentResponse != null && equipmentResponse['success'] == true) {
-          taskData['equipment'] = equipmentResponse['data']['equipment_id'];
-        }
-      } catch (e) {
-        print('Warning: Could not fetch equipment data: $e');
-      }
-
-      // Récupérer d'autres données nécessaires (pièces jointes, etc.)
-      try {
-        final attachmentsResponse = await apiService.getAttachmentsByRequest(taskId);
-        if (attachmentsResponse != null && attachmentsResponse['success'] == true) {
-          taskData['attachments'] = attachmentsResponse['data'];
-        }
-      } catch (e) {
-        print('Warning: Could not fetch attachments: $e');
-      }
 
       return MaintenanceTask.fromJson(taskData);
     } catch (e) {
@@ -476,3 +454,4 @@ class OfflineManager {
     _storage.addToSyncQueue(s, map);
   }
 }
+
