@@ -269,10 +269,33 @@ class TaskDetailScreenState extends State<TaskDetailScreen> with TickerProviderS
                   SizedBox(height: 16),
                   _buildDescriptionCard(currentTask),
                   SizedBox(height: 16),
-                  _buildEquipmentCard(),
-                  SizedBox(height: 16),
-                  // ✨ NOUVELLE CARTE DES PIÈCES
-                  PartsDropdownCard(parts: currentTask.parts),
+                  Builder(
+                    builder: (context) {
+                      final screenWidth = MediaQuery.of(context).size.width;
+                      // Seuil typique pour mobile : < 600px
+                      if (screenWidth < 600) {
+                        // Affichage en colonne (l'une sous l'autre)
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildEquipmentCard(),
+                            SizedBox(height: 16),
+                            PartsDropdownCard(parts: currentTask.parts),
+                          ],
+                        );
+                      } else {
+                        // Affichage côte à côte (desktop/tablette)
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: _buildEquipmentCard()),
+                            SizedBox(width: 16),
+                            Expanded(child: PartsDropdownCard(parts: currentTask.parts)),
+                          ],
+                        );
+                      }
+                    },
+                  ),
                   SizedBox(height: 16),
                   _buildActionButtons(),
                   SizedBox(height: 16),
@@ -925,3 +948,4 @@ class TaskDetailScreenState extends State<TaskDetailScreen> with TickerProviderS
     }
   }
 }
+

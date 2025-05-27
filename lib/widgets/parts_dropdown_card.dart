@@ -94,7 +94,7 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
                   Icon(Icons.build_circle, color: Colors.blue),
                   SizedBox(width: 8),
                   Text(
-                    'Pièces requises',
+                    'Parts',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -116,7 +116,7 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
                     Icon(Icons.info_outline, color: Colors.grey.shade500),
                     SizedBox(width: 8),
                     Text(
-                      'Aucune pièce requise pour cette tâche',
+                      'No parts have been found for this task.',
                       style: TextStyle(
                         color: Colors.grey.shade600,
                         fontStyle: FontStyle.italic,
@@ -144,7 +144,7 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
                 Icon(Icons.build_circle, color: Colors.blue),
                 SizedBox(width: 8),
                 Text(
-                  'Pièces requises',
+                  'Parts',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
@@ -160,7 +160,7 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
                     border: Border.all(color: Colors.blue.shade200),
                   ),
                   child: Text(
-                    '${widget.parts!.length} pièce${widget.parts!.length > 1 ? 's' : ''}',
+                    '${widget.parts!.length} part${widget.parts!.length > 1 ? 's' : ''}',
                     style: TextStyle(
                       color: Colors.blue.shade700,
                       fontSize: 12,
@@ -185,7 +185,7 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
                 child: DropdownButton<Map<String, dynamic>>(
                   value: _selectedPart,
                   isExpanded: true,
-                  hint: Text('Sélectionner une pièce'),
+                  hint: Text('Select a part'),
                   icon: Icon(Icons.keyboard_arrow_down, color: Colors.blue),
                   items: widget.parts!.map((part) {
                     return DropdownMenuItem<Map<String, dynamic>>(
@@ -321,7 +321,7 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
                 Icon(Icons.build, size: 16, color: Colors.grey.shade600),
                 SizedBox(width: 8),
                 Text(
-                  'Type d\'intervention:',
+                  'Intervention type:',
                   style: TextStyle(
                     fontWeight: FontWeight.w500,
                     color: Colors.grey.shade700,
@@ -358,7 +358,7 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
                   child: ElevatedButton.icon(
                     onPressed: () => _launchUrl(submodelViewerUrl),
                     icon: Icon(Icons.view_in_ar, size: 18),
-                    label: Text('Voir la pièce en 3D'),
+                    label: Text('See 3D Model'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
@@ -389,7 +389,7 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Modèle 3D non disponible pour cette pièce',
+                      '3D model not available for this part.',
                       style: TextStyle(
                         color: Colors.orange.shade700,
                         fontSize: 12,
@@ -462,7 +462,7 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Impossible d\'ouvrir l\'URL: $url'),
+              content: Text('Unable to open the URL: $url'),
               backgroundColor: Colors.red,
             ),
           );
@@ -472,7 +472,7 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors de l\'ouverture de l\'URL: ${e.toString()}'),
+            content: Text('Error while opening the URL: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
