@@ -18,6 +18,7 @@ class MaintenanceTask {
   // ✨ NOUVEAU : Stockage direct des infos équipement
   final Equipment? equipment;
   final Map<String, dynamic>? additionalData;
+  final List<Map<String, dynamic>>? parts;
 
   MaintenanceTask({
     required this.id,
@@ -34,6 +35,7 @@ class MaintenanceTask {
     required this.lastUpdated,
     this.equipment,
     this.additionalData,
+    this.parts,
   });
 
   factory MaintenanceTask.fromJson(Map<String, dynamic> json) {
@@ -79,6 +81,7 @@ class MaintenanceTask {
           ? Equipment.fromJson(json['equipment'])
           : null,
       additionalData: additional.isNotEmpty ? additional : null,
+      parts: (json['parts'] as List?)?.map((e) => Map<String, dynamic>.from(e)).toList(),
     );
   }
 
@@ -100,6 +103,7 @@ class MaintenanceTask {
       // ✨ NOUVEAU : Sérialisation des données étendues
       'equipment': equipment?.toJson(),
       'additional_data': additionalData,
+      'parts': parts,
     };
   }
 
