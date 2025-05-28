@@ -24,12 +24,13 @@ android {
         applicationId = "com.example.maintenance_application"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+
+        // Configuration pour ARCore - Android 7.0+ requis
+        minSdk = 24  // ARCore nécessite Android 7.0+
+        targetSdk = 33
+
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        minSdkVersion 24  // ARCore nécessite Android 7.0+
-        targetSdkVersion 33
     }
 
     buildTypes {
