@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../screens/ar_viewer_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PartsDropdownCard extends StatefulWidget {
@@ -348,19 +349,59 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
             SizedBox(height: 12),
           ],
 
-          // Boutons de visualisation 3D
+          // Boutons de visualisation 3D et AR
           Column(
             children: [
               // Bouton pour voir le modèle 3D de la pièce spécifique
               if (submodelViewerUrl != null && submodelViewerUrl.isNotEmpty) ...[
+                Row(
+                  children: [
+                    // Bouton 3D classique
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _launchUrl(submodelViewerUrl),
+                        icon: Icon(Icons.view_in_ar, size: 18),
+                        label: Text('See 3D Model'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    // Nouveau bouton AR
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _openARViewer(submodelViewerUrl, partName, description),
+                        icon: Icon(Icons.view_in_ar_outlined, size: 18),
+                        label: Text('Voir en AR'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+              ],
+
+              // Bouton pour le modèle parent si disponible
+              if (parentModelViewerUrl != null && parentModelViewerUrl.isNotEmpty) ...[
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () => _launchUrl(submodelViewerUrl),
-                    icon: Icon(Icons.view_in_ar, size: 18),
-                    label: Text('See 3D Model'),
+                    onPressed: () => _launchUrl(parentModelViewerUrl),
+                    icon: Icon(Icons.account_tree, size: 18),
+                    label: Text('See Parent 3D Model'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -478,5 +519,18 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
         );
       }
     }
+  }
+
+  void _openARViewer(String modelUrl, String partName, String? description) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ARViewerScreen(
+          modelUrl: modelUrl,
+          partName: partName,
+          partDescription: description,
+        ),
+      ),
+    );
   }
 }

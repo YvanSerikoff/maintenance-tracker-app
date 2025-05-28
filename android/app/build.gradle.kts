@@ -28,6 +28,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        minSdkVersion 24  // ARCore nécessite Android 7.0+
+        targetSdkVersion 33
     }
 
     buildTypes {
