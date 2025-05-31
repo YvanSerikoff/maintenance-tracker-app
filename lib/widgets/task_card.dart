@@ -8,7 +8,7 @@ class TaskCard extends StatelessWidget {
   final MaintenanceTask task;
   final VoidCallback? onTap;
 
-  const TaskCard({Key? key, required this.task, this.onTap}) : super(key: key);
+  const TaskCard({super.key, required this.task, this.onTap});
 
   @override
   Widget build(BuildContext context) {

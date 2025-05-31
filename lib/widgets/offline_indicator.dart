@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:maintenance_app/services/offline_manager.dart';
 
 class OfflineIndicator extends StatefulWidget {
+  const OfflineIndicator({super.key});
+
   @override
   _OfflineIndicatorState createState() => _OfflineIndicatorState();
 }

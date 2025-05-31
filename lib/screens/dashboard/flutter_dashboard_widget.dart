@@ -45,11 +45,11 @@ class CMMSDashboard extends StatefulWidget {
   final String password;
 
   const CMMSDashboard({
-    Key? key,
+    super.key,
     required this.baseUrl,
     required this.username,
     required this.password,
-  }) : super(key: key);
+  });
 
   @override
   _CMMSDashboardState createState() => _CMMSDashboardState();
@@ -356,7 +356,7 @@ class _CMMSDashboardState extends State<CMMSDashboard> {
                         },
                       )
                     : null,
-              )).toList(),
+              )),
           ],
         ),
       ),
@@ -390,7 +390,7 @@ class _CMMSDashboardState extends State<CMMSDashboard> {
                     _openModel3DViewer(eq['model3d_id']['viewer_url']);
                   },
                 ),
-              )).toList(),
+              )),
           ],
         ),
       ),
@@ -432,7 +432,7 @@ class _CMMSDashboardState extends State<CMMSDashboard> {
                         },
                       )
                     : null,
-              )).toList(),
+              )),
           ],
         ),
       ),
@@ -464,6 +464,8 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

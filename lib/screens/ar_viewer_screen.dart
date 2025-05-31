@@ -8,11 +8,11 @@ class ARViewerScreen extends StatefulWidget {
   final String? partDescription;
 
   const ARViewerScreen({
-    Key? key,
+    super.key,
     required this.modelUrl,
     required this.partName,
     this.partDescription,
-  }) : super(key: key);
+  });
 
   @override
   ARViewerScreenState createState() => ARViewerScreenState();
@@ -56,8 +56,8 @@ class ARViewerScreenState extends State<ARViewerScreen> {
         onPressed: () {
           arService.loadModel3D(widget.modelUrl, widget.partName);
         },
-        child: Icon(Icons.add),
         backgroundColor: Colors.purple,
+        child: Icon(Icons.add),
       ),
     );
   }

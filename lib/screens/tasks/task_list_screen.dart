@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:maintenance_app/screens/dashboard/dashboard_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:maintenance_app/services/auth_service.dart';
 import 'package:maintenance_app/services/offline_manager.dart';
@@ -143,7 +142,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
           ),
 
           // Status Filters
-          Container(
+          SizedBox(
             height: isSmallScreen ? 40 : 50,
             child: ListView(
               scrollDirection: Axis.horizontal,
