@@ -1,3 +1,4 @@
+import '../screens/dashboard/flutter_dashboard_widget.dart';
 import 'equipment.dart';
 
 class MaintenanceTask {

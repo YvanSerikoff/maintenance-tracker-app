@@ -1,5 +1,6 @@
 // Flutter/Dart - Encoder Basic Auth et appels API
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 // Fonction simple pour encoder Basic Auth

@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.maintenance_application"
-    compileSdk = 35
+    compileSdk = 34
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

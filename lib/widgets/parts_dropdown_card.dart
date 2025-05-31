@@ -6,9 +6,9 @@ class PartsDropdownCard extends StatefulWidget {
   final List<Map<String, dynamic>>? parts;
 
   const PartsDropdownCard({
-    super.key,
+    Key? key,
     this.parts,
-  });
+  }) : super(key: key);
 
   @override
   PartsDropdownCardState createState() => PartsDropdownCardState();

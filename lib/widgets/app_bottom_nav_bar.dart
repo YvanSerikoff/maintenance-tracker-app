@@ -5,7 +5,7 @@ import 'package:maintenance_app/screens/profile_screen.dart';
 
 class AppBottomNavBar extends StatelessWidget {
   final int currentIndex;
-  const AppBottomNavBar({super.key, required this.currentIndex});
+  const AppBottomNavBar({Key? key, required this.currentIndex}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
