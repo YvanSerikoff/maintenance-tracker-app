@@ -28,6 +28,7 @@ dependencies:
   arkit_plugin: ^1.1.2
   model_viewer_plus: ^1.8.0
   vector_math: ^2.1.4
+  android_intent_plus: ^5.3.0
 
 dev_dependencies:
   flutter_test:

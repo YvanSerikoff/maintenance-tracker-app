@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.maintenance_application"
-    compileSdk = 34
+    compileSdk = 35
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -28,6 +28,10 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
@@ -35,3 +39,9 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    implementation("com.gorisse.thomas.sceneform:sceneform:1.22.4")
+    implementation("com.github.YvanSerikoff:maintenance-tracker-app:1.0.0")
+}
+
