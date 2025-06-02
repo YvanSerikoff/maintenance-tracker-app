@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.maintenance_application"
+    namespace = "com.example.maintenance_app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -19,9 +19,15 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
+    dependencies{
+        implementation "io.github.sceneview:sceneview:0.9.7"
+        implementation "io.github.sceneview:ar:0.9.7"
+        implementation "io.github.sceneview:model-loader:0.9.7"
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.maintenance_application"
+        applicationId = "com.example.maintenance_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
