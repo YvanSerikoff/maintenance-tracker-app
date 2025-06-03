@@ -19,12 +19,6 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
-    dependencies{
-        implementation "io.github.sceneview:sceneview:0.9.7"
-        implementation "io.github.sceneview:ar:0.9.7"
-        implementation "io.github.sceneview:model-loader:0.9.7"
-    }
-
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.maintenance_app"

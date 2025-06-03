@@ -24,14 +24,15 @@ dependencies:
   flutter_html: ^3.0.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  camera: ^0.10.5
-  permission_handler: ^11.3.1
+  camera: ^0.11.1
+  permission_handler: ^12.0.0+1
+  device_apps: ^2.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   mockito: ^5.4.0
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.3
   hive_generator: ^2.0.1
   build_runner: ^2.4.7
