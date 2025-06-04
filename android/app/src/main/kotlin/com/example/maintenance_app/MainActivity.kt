@@ -15,7 +15,7 @@ class MainActivity: FlutterActivity() {
             when (call.method) {
                 "launchArViewer" -> {
                     val modelPath = call.argument<String>("modelPath")
-                    launchArViewer(modelPath ?: "models/damaged_helmet.glb")
+                    launchArViewer(modelPath ?: "assets/models/damaged_helmet.glb")
                     result.success("AR Viewer launched")
                 }
                 "checkArSupport" -> {
