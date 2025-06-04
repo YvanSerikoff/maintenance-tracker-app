@@ -47,13 +47,13 @@ import io.github.sceneview.rememberView
 
 class ArModelViewerActivity : ComponentActivity() {
 
-    private var modelFile: String = "assets/models/damaged_helmet.glb"
+    private var modelFile: String = "models/damaged_helmet.glb"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // Get model file from intent
-        modelFile = intent.getStringExtra("model_file") ?: "assets/models/damaged_helmet.glb"
+        modelFile = intent.getStringExtra("model_file") ?: "models/damaged_helmet.glb"
 
         setContent {
             // A surface container using the 'background' color from the theme

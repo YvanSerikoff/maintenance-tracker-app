@@ -27,7 +27,7 @@ class _ArViewerPageState extends State<ArViewerPage> {
   Future<void> _launchArViewer() async {
     if (_arSupported) {
       try {
-        await ArService.launchArViewer('models/damaged_helmet.glb');
+        await ArService.launchArViewer('assets/models/damaged_helmet.glb');
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to launch AR viewer: $e')),
