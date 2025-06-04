@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../services/ar_service.dart';
+
 class PartsDropdownCard extends StatefulWidget {
   final List<Map<String, dynamic>>? parts;
+  final String? modelPath;
 
   const PartsDropdownCard({
     Key? key,
     this.parts,
+    this.modelPath,
   }) : super(key: key);
 
   @override
@@ -370,6 +374,22 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
                 ),
                 SizedBox(height: 8),
               ],
+              // Bouton pour lancer la vue AR
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _launchAR(context, part),
+                  icon: Icon(Icons.camera, size: 18),
+                  label: Text('Lancer la vue AR'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
 
@@ -478,5 +498,21 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
         );
       }
     }
+  }
+}
+
+// Remplacer la fonction _launchAR pour accepter le chemin du modèle de la pièce sélectionnée
+void _launchAR(BuildContext context, Map<String, dynamic> part) async {
+  try {
+    String? modelPath;
+    // Essayer d'obtenir le chemin du modèle de la pièce ou utiliser un chemin par défaut
+    if (part['submodel'] is Map && part['submodel']['model_path'] != null) {
+      modelPath = part['submodel']['model_path'].toString();
+    }
+    await ArService.launchArViewer(modelPath ?? 'assets/models/damaged_helmet.glb');
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Impossible d’ouvrir la vue AR : $e')),
+    );
   }
 }
