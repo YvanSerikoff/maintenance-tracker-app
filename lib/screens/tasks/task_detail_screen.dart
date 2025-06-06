@@ -9,6 +9,9 @@ import 'package:maintenance_app/services/offline_manager.dart';
 import 'package:maintenance_app/config/constants.dart';
 import 'package:maintenance_app/widgets/parts_dropdown_card.dart'; // Nouveau import
 import 'package:url_launcher/url_launcher.dart';
+import 'package:maintenance_app/services/parts_api_service.dart';
+
+import '../../widgets/parts_checklist_card.dart';
 
 class TaskDetailScreen extends StatefulWidget {
   final MaintenanceTask task;
@@ -36,6 +39,8 @@ class TaskDetailScreenState extends State<TaskDetailScreen> with TickerProviderS
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+  PartsApiService? _partsApiService;
+
   @override
   void initState() {
     super.initState();
@@ -59,6 +64,47 @@ class TaskDetailScreenState extends State<TaskDetailScreen> with TickerProviderS
 
     // Charger les données
     _initializeData();
+    _initializePartsApiService();
+  }
+
+  void _initializePartsApiService() {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    if (authService.apiService != null) {
+      _partsApiService = PartsApiService(
+        baseUrl: authService.apiService!.baseUrl,
+        headers: authService.apiService!.headers,
+      );
+    }
+  }
+
+  void _onPartsUpdated(List<Map<String, dynamic>> updatedParts) {
+    setState(() {
+      if (_completeTask != null) {
+        _completeTask = _completeTask!.copyWithUpdatedParts(updatedParts);
+      }
+    });
+
+    // Vérifier l'auto-complétion
+    _checkAutoCompletion(updatedParts);
+  }
+
+  void _checkAutoCompletion(List<Map<String, dynamic>> parts) {
+    if (parts.isEmpty) return;
+
+    // Vérifier si toutes les pièces sont cochées
+    bool allChecked = parts.every((part) => part['done'] == true);
+
+    // Auto-complétion : passer en "Completed" si toutes les pièces sont cochées
+    if (allChecked && _selectedStatus != AppConstants.STATUS_COMPLETED) {
+      _updateTaskStatus(AppConstants.STATUS_COMPLETED);
+      _showSuccessSnackBar('✅ Task automatically completed - all parts checked!');
+    }
+    // Retour en arrière : si une pièce est décochée et que la tâche était complétée
+    else if (!allChecked && _selectedStatus == AppConstants.STATUS_COMPLETED) {
+      // Revenir au statut "In Progress" par défaut
+      _updateTaskStatus(AppConstants.STATUS_IN_PROGRESS);
+      _showInfoSnackBar('Task status changed to In Progress - not all parts completed');
+    }
   }
 
   @override
@@ -280,7 +326,12 @@ class TaskDetailScreenState extends State<TaskDetailScreen> with TickerProviderS
                           children: [
                             _buildEquipmentCard(),
                             SizedBox(height: 16),
-                            PartsDropdownCard(parts: currentTask.parts),
+                            PartsChecklistCard(
+                              parts: currentTask.parts,
+                              taskId: currentTask.id,
+                              partsApiService: _partsApiService,
+                              onPartsUpdated: _onPartsUpdated,
+                            ),
                           ],
                         );
                       } else {
@@ -290,7 +341,12 @@ class TaskDetailScreenState extends State<TaskDetailScreen> with TickerProviderS
                           children: [
                             Expanded(child: _buildEquipmentCard()),
                             SizedBox(width: 16),
-                            Expanded(child: PartsDropdownCard(parts: currentTask.parts)),
+                            Expanded(child: PartsChecklistCard(
+                              parts: currentTask.parts,
+                              taskId: currentTask.id,
+                              partsApiService: _partsApiService,
+                              onPartsUpdated: _onPartsUpdated,
+                            ),),
                           ],
                         );
                       }

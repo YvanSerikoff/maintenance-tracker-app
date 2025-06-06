@@ -38,45 +38,56 @@ class MaintenanceTask {
     this.parts,
   });
 
-  factory MaintenanceTask.fromJson(Map<String, dynamic> json) {
-    // Regrouper les champs additionnels non mappés
-    final additional = <String, dynamic>{};
-    for (final key in json.keys) {
-      if (!['id','name','description','scheduled_date','status','priority','technician_id','equipment_id','location','attachments','created_at','last_updated','equipment'].contains(key)) {
-        additional[key] = json[key];
-      }
+  // ✨ HELPER : Conversion sécurisée de String vers int
+  static int _safeParseInt(dynamic value, {int defaultValue = 0}) {
+    if (value == null) return defaultValue;
+    if (value is int) return value;
+    if (value is String) {
+      final parsed = int.tryParse(value);
+      return parsed ?? defaultValue;
     }
+    if (value is double) return value.toInt();
+    return defaultValue;
+  }
+
+  // ✨ HELPER : Conversion sécurisée pour DateTime
+  static DateTime _safeParseDateTime(dynamic value, {DateTime? defaultValue}) {
+    defaultValue ??= DateTime.now();
+    if (value == null) return defaultValue;
+    if (value is DateTime) return value;
+    if (value is String && value.isNotEmpty) {
+      final parsed = DateTime.tryParse(value);
+      return parsed ?? defaultValue;
+    }
+    return defaultValue;
+  }
+
+  factory MaintenanceTask.fromJson(Map<String, dynamic> json) {
+    Map<String, dynamic> additional = {};
+
+    if (json['detailed_info'] != null) {
+      additional = Map<String, dynamic>.from(json['detailed_info']);
+    }
+
     return MaintenanceTask(
-      id: json['id'] ?? 0,
-      name: json['name']?.toString() ?? '',
-      description: json['description']?.toString() ?? '',
-      scheduledDate: json['scheduled_date'] != null
-          ? DateTime.tryParse(json['scheduled_date'].toString()) ?? DateTime(1970)
-          : DateTime(1970),
-      status: _extractStatusFromJson(json),
-      priority: json['priority'] is int
-          ? json['priority']
-          : int.tryParse(json['priority']?.toString() ?? '0') ?? 0,
-      technicianId: json['technician_id'] is int
-          ? json['technician_id']
-          : int.tryParse(json['technician_id']?.toString() ?? '0') ?? 0,
-      equipmentId: json['equipment_id'] is int
-          ? json['equipment_id']
-          : (json['equipment_id'] is Map && json['equipment_id']['id'] != null
-              ? json['equipment_id']['id']
-              : 0),
-      location: json['location']?.toString() ?? '',
-      attachments: (json['attachments'] as List?)?.map((e) => e.toString()).toList() ?? [],
-      createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime(1970)
-          : (json['detailed_info'] != null && json['detailed_info']['created_date'] != null
-              ? DateTime.tryParse(json['detailed_info']['created_date'].toString()) ?? DateTime(1970)
-              : DateTime(1970)),
+      id: _safeParseInt(json['id']),
+      name: json['name']?.toString() ?? json['request_object']?.toString() ?? 'Sans nom',
+      description: json['description']?.toString() ?? json['request_reason']?.toString() ?? '',
+      scheduledDate: _safeParseDateTime(json['scheduled_date']),
+      status: _extractStatus(json),
+      priority: _safeParseInt(json['priority']),
+      technicianId: _safeParseInt(json['technician_id']),
+      equipmentId: _safeParseInt(json['equipment_id']),
+      location: json['location']?.toString() ?? 'Non spécifié',
+      attachments: json['attachments'] != null
+          ? List<String>.from(json['attachments'])
+          : [],
+      createdAt: _safeParseDateTime(json['created_at']),
       lastUpdated: json['last_updated'] != null
-          ? DateTime.tryParse(json['last_updated'].toString()) ?? DateTime(1970)
+          ? _safeParseDateTime(json['last_updated'])
           : (json['detailed_info'] != null && json['detailed_info']['last_update'] != null
-              ? DateTime.tryParse(json['detailed_info']['last_update'].toString()) ?? DateTime(1970)
-              : DateTime(1970)),
+          ? _safeParseDateTime(json['detailed_info']['last_update'], defaultValue: DateTime(1970))
+          : DateTime(1970)),
       equipment: json['equipment'] != null
           ? Equipment.fromJson(json['equipment'])
           : null,
@@ -100,37 +111,87 @@ class MaintenanceTask {
       'attachments': attachments,
       'created_at': createdAt.toIso8601String(),
       'last_updated': lastUpdated.toIso8601String(),
-      // ✨ NOUVEAU : Sérialisation des données étendues
       'equipment': equipment?.toJson(),
       'additional_data': additionalData,
       'parts': parts,
     };
   }
 
-  static int _extractStatusFromJson(Map<String, dynamic> json) {
+  // ✨ NOUVEAU : Méthodes pour gérer l'état des pièces basé sur le champ "done"
+  bool get areAllPartsChecked {
+    if (parts == null || parts!.isEmpty) return false;
+
+    for (var part in parts!) {
+      if (part['done'] != true) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // ✨ NOUVEAU : Compter les pièces cochées
+  int get checkedPartsCount {
+    if (parts == null) return 0;
+    return parts!.where((part) => part['done'] == true).length;
+  }
+
+  // ✨ NOUVEAU : Total des pièces
+  int get totalPartsCount {
+    return parts?.length ?? 0;
+  }
+
+  // ✨ NOUVEAU : Obtenir le statut des pièces sous forme de Map
+  Map<int, bool> get partsCheckedStatus {
+    Map<int, bool> status = {};
+    if (parts != null) {
+      for (var part in parts!) {
+        final partId = _safeParseInt(part['id']); // ✨ Conversion sécurisée
+        if (partId > 0) { // Vérifier que l'ID est valide
+          status[partId] = part['done'] == true;
+        }
+      }
+    }
+    return status;
+  }
+
+  // ✨ NOUVEAU : Créer une copie avec des pièces mises à jour
+  MaintenanceTask copyWithUpdatedParts(List<Map<String, dynamic>> updatedParts) {
+    return MaintenanceTask(
+      id: id,
+      name: name,
+      description: description,
+      scheduledDate: scheduledDate,
+      status: status,
+      priority: priority,
+      technicianId: technicianId,
+      equipmentId: equipmentId,
+      location: location,
+      attachments: attachments,
+      createdAt: createdAt,
+      lastUpdated: DateTime.now(),
+      equipment: equipment,
+      additionalData: additionalData,
+      parts: updatedParts,
+    );
+  }
+
+  static int _extractStatus(Map<String, dynamic> json) {
     try {
-      if (json['status'] != null) {
-        if (json['status'] is int) {
-          return json['status'];
-        }
-        if (json['status'] is String) {
-          return int.tryParse(json['status']) ?? 1;
-        }
+      // ✨ Conversion sécurisée pour tous les cas
+      if (json['stage_id'] != null && json['stage_id'] is int) {
+        return json['stage_id'];
       }
-      if (json['stage_id'] != null) {
-        if (json['stage_id'] is Map && json['stage_id']['id'] != null) {
-          return json['stage_id']['id'];
-        }
-        if (json['stage_id'] is int) {
-          return json['stage_id'];
-        }
-        if (json['stage_id'] is String) {
-          return int.tryParse(json['stage_id']) ?? 1;
-        }
+      if (json['stage_id'] != null && json['stage_id'] is String) {
+        return _safeParseInt(json['stage_id'], defaultValue: 1);
       }
-      // Ajout : support du statut dans stage.id
+      if (json['stage_id'] != null && json['stage_id'] is Map && json['stage_id']['id'] != null) {
+        return _safeParseInt(json['stage_id']['id'], defaultValue: 1);
+      }
       if (json['stage'] != null && json['stage'] is Map && json['stage']['id'] != null) {
-        return json['stage']['id'];
+        return _safeParseInt(json['stage']['id'], defaultValue: 1);
+      }
+      if (json['status'] != null) {
+        return _safeParseInt(json['status'], defaultValue: 1);
       }
       return 1;
     } catch (e) {
@@ -139,4 +200,3 @@ class MaintenanceTask {
     }
   }
 }
-

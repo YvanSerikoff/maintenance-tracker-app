@@ -38,6 +38,11 @@ class CMMSApiService {
     'Content-Type': 'application/json',
   };
 
+  get headers => {
+    'Authorization': authHeader,
+    'Content-Type': 'application/json',
+  };
+
   Future<Map<String, dynamic>?> getUser() async{
     try{
       final response = await http.get(
