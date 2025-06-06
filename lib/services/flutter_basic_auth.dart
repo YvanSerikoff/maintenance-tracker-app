@@ -188,7 +188,7 @@ class CMMSApiService {
   ) async {
     try {
       final response = await http.put(
-        Uri.parse('$baseUrl/api/flutter/maintenance/requests/$requestId'),
+        Uri.parse('$baseUrl/api/flutter/maintenance/requests/$requestId/stage'),
         headers: defaultHeaders,
         body: json.encode(updates),
       );
@@ -288,4 +288,5 @@ class CMMSApiService {
     return await updateMaintenanceRequest(taskId, {'stage_id': newStatus});
   }
 }
+
 

@@ -18,7 +18,7 @@ class PartsDropdownCard extends StatefulWidget {
 }
 
 class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProviderStateMixin {
-  Map<String, dynamic>? _selectedPart;
+  int? _selectedPartId;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -37,7 +37,7 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
 
     // Sélectionner la première pièce par défaut si disponible
     if (widget.parts != null && widget.parts!.isNotEmpty) {
-      _selectedPart = widget.parts!.first;
+      _selectedPartId = widget.parts!.first['id'];
       _animationController.forward();
     }
   }
@@ -46,6 +46,17 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  Map<String, dynamic>? get _selectedPart {
+    if (widget.parts == null) return null;
+    try {
+      return widget.parts!.firstWhere(
+        (p) => p['id'] == _selectedPartId,
+      );
+    } catch (_) {
+      return widget.parts!.isNotEmpty ? widget.parts!.first : null;
+    }
   }
 
   // Méthode pour extraire le nom de la pièce
@@ -186,14 +197,14 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
                 color: Colors.white,
               ),
               child: DropdownButtonHideUnderline(
-                child: DropdownButton<Map<String, dynamic>>(
-                  value: _selectedPart,
+                child: DropdownButton<int>(
+                  value: _selectedPartId,
                   isExpanded: true,
                   hint: Text('Select a part'),
                   icon: Icon(Icons.keyboard_arrow_down, color: Colors.blue),
                   items: widget.parts!.map((part) {
-                    return DropdownMenuItem<Map<String, dynamic>>(
-                      value: part,
+                    return DropdownMenuItem<int>(
+                      value: part['id'],
                       child: Row(
                         children: [
                           Icon(
@@ -213,10 +224,10 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
                       ),
                     );
                   }).toList(),
-                  onChanged: (Map<String, dynamic>? newValue) {
-                    if (newValue != null) {
+                  onChanged: (int? newId) {
+                    if (newId != null) {
                       setState(() {
-                        _selectedPart = newValue;
+                        _selectedPartId = newId;
                       });
                       _animationController.reset();
                       _animationController.forward();
@@ -380,7 +391,7 @@ class PartsDropdownCardState extends State<PartsDropdownCard> with TickerProvide
                 child: ElevatedButton.icon(
                   onPressed: () => _launchAR(context, part),
                   icon: Icon(Icons.camera, size: 18),
-                  label: Text('Lancer la vue AR'),
+                  label: Text('Launch AR scene'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepPurple,
                     foregroundColor: Colors.white,
@@ -509,7 +520,7 @@ void _launchAR(BuildContext context, Map<String, dynamic> part) async {
     if (part['submodel'] is Map && part['submodel']['model_path'] != null) {
       modelPath = part['submodel']['model_path'].toString();
     }
-    await ArService.launchArViewer(modelPath ?? 'assets/models/damaged_helmet.glb');
+    await ArService.launchArViewer(modelPath ?? 'models/damaged_helmet.glb');
   } catch (e) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Impossible d’ouvrir la vue AR : $e')),

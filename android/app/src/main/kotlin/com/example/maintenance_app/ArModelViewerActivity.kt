@@ -3,16 +3,9 @@ package com.example.maintenance_app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.Text
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,6 +37,8 @@ import io.github.sceneview.rememberModelLoader
 import io.github.sceneview.rememberNodes
 import io.github.sceneview.rememberOnGestureListener
 import io.github.sceneview.rememberView
+import androidx.compose.runtime.DisposableEffect
+import timber.log.Timber
 
 class ArModelViewerActivity : ComponentActivity() {
 
@@ -51,12 +46,9 @@ class ArModelViewerActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Get model file from intent
         modelFile = intent.getStringExtra("model_file") ?: "models/damaged_helmet.glb"
 
         setContent {
-            // A surface container using the 'background' color from the theme
             Box(
                 modifier = Modifier.fillMaxSize(),
             ) {
@@ -69,10 +61,21 @@ class ArModelViewerActivity : ComponentActivity() {
                 val collisionSystem = rememberCollisionSystem(view)
 
                 var planeRenderer by remember { mutableStateOf(true) }
-                var trackingFailureReason by remember {
-                    mutableStateOf<TrackingFailureReason?>(null)
-                }
+                var trackingFailureReason by remember { mutableStateOf<TrackingFailureReason?>(null) }
                 var frame by remember { mutableStateOf<Frame?>(null) }
+
+                // CLEANUP nodes UNIQUEMENT ici
+                DisposableEffect(Unit) {
+                    onDispose {
+                        childNodes.forEach {
+                            try {
+                                it.destroy()
+                            } catch (e: Exception) {
+                                Timber.tag("AR_CLEANUP").e(e, "Error destroying node: $it")
+                            }
+                        }
+                    }
+                }
 
                 ARScene(
                     modifier = Modifier.fillMaxSize(),
@@ -82,23 +85,16 @@ class ArModelViewerActivity : ComponentActivity() {
                     modelLoader = modelLoader,
                     collisionSystem = collisionSystem,
                     sessionConfiguration = { session, config ->
-                        config.depthMode =
-                            when (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
-                                true -> Config.DepthMode.AUTOMATIC
-                                else -> Config.DepthMode.DISABLED
-                            }
+                        config.depthMode = if (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC))
+                            Config.DepthMode.AUTOMATIC else Config.DepthMode.DISABLED
                         config.instantPlacementMode = Config.InstantPlacementMode.LOCAL_Y_UP
-                        config.lightEstimationMode =
-                            Config.LightEstimationMode.ENVIRONMENTAL_HDR
+                        config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
                     },
                     cameraNode = cameraNode,
                     planeRenderer = planeRenderer,
-                    onTrackingFailureChanged = {
-                        trackingFailureReason = it
-                    },
+                    onTrackingFailureChanged = { trackingFailureReason = it },
                     onSessionUpdated = { session, updatedFrame ->
                         frame = updatedFrame
-
                         if (childNodes.isEmpty()) {
                             updatedFrame.getUpdatedPlanes()
                                 .firstOrNull { it.type == Plane.Type.HORIZONTAL_UPWARD_FACING }
@@ -117,10 +113,7 @@ class ArModelViewerActivity : ComponentActivity() {
                             if (node == null) {
                                 val hitResults = frame?.hitTest(motionEvent.x, motionEvent.y)
                                 hitResults?.firstOrNull {
-                                    it.isValid(
-                                        depthPoint = false,
-                                        point = false
-                                    )
+                                    it.isValid(depthPoint = false, point = false)
                                 }?.createAnchorOrNull()
                                     ?.let { anchor ->
                                         planeRenderer = false
@@ -165,10 +158,8 @@ class ArModelViewerActivity : ComponentActivity() {
         val anchorNode = AnchorNode(engine = engine, anchor = anchor)
         val modelNode = ModelNode(
             modelInstance = modelLoader.createModelInstance(modelFile),
-            // Scale to fit in a 0.5 meters cube
             scaleToUnits = 0.5f
         ).apply {
-            // Model Node needs to be editable for independent rotation from the anchor rotation
             isEditable = true
             editableScaleRange = 0.2f..0.75f
         }
@@ -177,12 +168,9 @@ class ArModelViewerActivity : ComponentActivity() {
             size = modelNode.extents,
             center = modelNode.center,
             materialInstance = materialLoader.createColorInstance(Color.White.copy(alpha = 0.5f))
-        ).apply {
-            isVisible = false
-        }
+        ).apply { isVisible = false }
         modelNode.addChildNode(boundingBoxNode)
         anchorNode.addChildNode(modelNode)
-
         listOf(modelNode, anchorNode).forEach {
             it.onEditingChanged = { editingTransforms ->
                 boundingBoxNode.isVisible = editingTransforms.isNotEmpty()
